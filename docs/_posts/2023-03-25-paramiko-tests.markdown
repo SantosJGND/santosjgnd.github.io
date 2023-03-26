@@ -81,4 +81,4 @@ After some research, I found a solution that works. It turns out you can have ne
 
 The `connect` method creates a mock server, and the `__enter__` method yields the mock server context manager. The `__exit__` method closes the mock server. The `__enter__` method also yields the `paramiko.SSHClient()` context manager, and returns the `ConnectorParamiko` object. This way, the `ConnectorParamiko` object can be used to mock the methods of `paramiko.SSHClient()`.
 
-This was a bit of a challenge, but it was fun to solve. I hope this helps someone else.
+That's it. Forgive me if this was obvious, but I couldn't find a solution anywhere else. I hope this helps someone.
