@@ -19,6 +19,6 @@ of stars to identify genetic clusters.
 
 I am currently a researcher at the Portuguese NIH [INSA](https://www.insa.min-saude.pt/) where I am part of the development team of the [INSaFLU](https://insaflu.insa.pt/) project, a web-based platform for viral metagenomics detection and routine genomic surveillance.
 
-In my free time, I enjoy drawing and reading, science fiction, particularly science fiction, but also history, and some fantasy, of the Pratchian kind.
+In my free time, I enjoy drawing and reading, particularly science fiction, but also history, and some fantasy, of the Pratchian kind.
 
 Thank you for taking the time to learn a bit about me, and I look forward to sharing my insights and experiences with you.
