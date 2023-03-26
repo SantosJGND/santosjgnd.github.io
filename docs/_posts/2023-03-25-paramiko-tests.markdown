@@ -2,7 +2,7 @@
 layout: post
 title: "Unit testing Paramiko"
 date: 2023-03-25 23:34:26 +0000
-categories: unit-tests paramiko python
+categories: python unit-tests paramiko
 ---
 
 This post came about while writting unit tests for a project that uses [Paramiko](https://www.paramiko.org/), a python library for running in-python ssh commands. For context, in this project a user can upload a file to a server, and the server will run a script on the file. The script is run on the server, not on the user's computer. Communication between the user and the server, i.e. running commands on the server, uploading and downloading files, is done through ssh using paramiko.
