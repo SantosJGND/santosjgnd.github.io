@@ -1,0 +1,1 @@
+{"version":3,"sourceRoot":"","sources":["style.scss"],"names":[],"mappings":"AACQ;AACA","sourcesContent":["$fa-font-path: \"fonts/font-awesome/\";\n@import '@fortawesome/fontawesome-free/css/fontawesome.css';\n@import '@fortawesome/fontawesome-free/css/all.css';"],"file":"style.css"}
