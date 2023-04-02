@@ -4,21 +4,21 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
 <title>Coalescent Theory in Python - Introduction | Research Log</title>
-<meta name="generator" content="Jekyll v4.3.2" />
+<meta name="generator" content="Jekyll v3.9.3" />
 <meta property="og:title" content="Coalescent Theory in Python - Introduction" />
 <meta name="author" content="SantosJGND" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="This week i had no particular magic happen at work, so I decided to begin transitioning some material i have previosuly hosted in jupyter notebooks to this blog. I will be posting a series of posts on the coalescent theory, which is a branch of probability theory that is used in population genetics. I wrote them while taking classes on the subject under Dr. Jeffrey Jensen." />
 <meta property="og:description" content="This week i had no particular magic happen at work, so I decided to begin transitioning some material i have previosuly hosted in jupyter notebooks to this blog. I will be posting a series of posts on the coalescent theory, which is a branch of probability theory that is used in population genetics. I wrote them while taking classes on the subject under Dr. Jeffrey Jensen." />
-<link rel="canonical" href="http://localhost:4000/python/genetics/coalescent/theory/introduction/2023/04/01/new-post.html" />
-<meta property="og:url" content="http://localhost:4000/python/genetics/coalescent/theory/introduction/2023/04/01/new-post.html" />
+<link rel="canonical" href="http://localhost:4000/python/genetics/coalescent/theory/introduction/2023/04/01/coalescent-intro.html" />
+<meta property="og:url" content="http://localhost:4000/python/genetics/coalescent/theory/introduction/2023/04/01/coalescent-intro.html" />
 <meta property="og:site_name" content="Research Log" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2023-04-01T11:23:29+01:00" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Coalescent Theory in Python - Introduction" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"SantosJGND"},"dateModified":"2023-04-01T11:23:29+01:00","datePublished":"2023-04-01T11:23:29+01:00","description":"This week i had no particular magic happen at work, so I decided to begin transitioning some material i have previosuly hosted in jupyter notebooks to this blog. I will be posting a series of posts on the coalescent theory, which is a branch of probability theory that is used in population genetics. I wrote them while taking classes on the subject under Dr. Jeffrey Jensen.","headline":"Coalescent Theory in Python - Introduction","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/python/genetics/coalescent/theory/introduction/2023/04/01/new-post.html"},"url":"http://localhost:4000/python/genetics/coalescent/theory/introduction/2023/04/01/new-post.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"SantosJGND"},"dateModified":"2023-04-01T11:23:29+01:00","datePublished":"2023-04-01T11:23:29+01:00","description":"This week i had no particular magic happen at work, so I decided to begin transitioning some material i have previosuly hosted in jupyter notebooks to this blog. I will be posting a series of posts on the coalescent theory, which is a branch of probability theory that is used in population genetics. I wrote them while taking classes on the subject under Dr. Jeffrey Jensen.","headline":"Coalescent Theory in Python - Introduction","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/python/genetics/coalescent/theory/introduction/2023/04/01/coalescent-intro.html"},"url":"http://localhost:4000/python/genetics/coalescent/theory/introduction/2023/04/01/coalescent-intro.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Research Log" />
 
@@ -155,7 +155,7 @@ MathJax.Hub.Register.MessageHook("TeX Jax - parse error",function (message) {
 
 <p>The coalescent process is a Markov chain, which means that the probability of a given state depends only on the previous state. This is important because it allows us to calculate the probability of a given genealogy, given a set of parameters. This is done by calculating the probability of the genealogy, given the previous state, and multiplying it by the probability of the previous state, given the previous previous state, and so on, until we reach the root of the tree.</p>
 
-  </div><a class="u-url" href="/python/genetics/coalescent/theory/introduction/2023/04/01/new-post.html" hidden></a>
+  </div><a class="u-url" href="/python/genetics/coalescent/theory/introduction/2023/04/01/coalescent-intro.html" hidden></a>
 </article>
 
       </div>
@@ -166,16 +166,20 @@ MathJax.Hub.Register.MessageHook("TeX Jax - parse error",function (message) {
 
     <div class="footer-col-wrapper">
       <div class="footer-col">
-        <p class="feed-subscribe">
-          <a href="http://localhost:4000/feed.xml">
-            <svg class="svg-icon orange">
-              <use xlink:href="/assets/minima-social-icons.svg#rss"></use>
-            </svg><span>Subscribe</span>
-          </a>
-        </p>
         <ul class="contact-list">
           <li class="p-name">SantosJGND</li>
-          <li><a class="u-email" href="mailto:dourado.jns@gmail.com">dourado.jns@gmail.com</a></li>
+          <li>
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a class="u-url" href="https://github.com/SantosJGND">SantosJGND</a>
+            </li>
+            <li>
+                <i class="fa fa-twitter" aria-hidden="true"></i>
+                <a class="u-url" href="">SantosJGND</a>
+            </li>
+            <li>
+                <i class="fa fa-envelope" aria-hidden="true"></i>
+                <a class="u-email" href="mailto:dourado.jns@gmail.com">dourado.jns@gmail.com</a>
+            </li>
         </ul>
       </div>
       <div class="footer-col">
@@ -193,3 +197,5 @@ MathJax.Hub.Register.MessageHook("TeX Jax - parse error",function (message) {
 </body>
 
 </html>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">

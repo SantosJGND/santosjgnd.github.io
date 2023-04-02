@@ -4,7 +4,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
 <title>Unit testing Paramiko | Research Log</title>
-<meta name="generator" content="Jekyll v4.3.2" />
+<meta name="generator" content="Jekyll v3.9.3" />
 <meta property="og:title" content="Unit testing Paramiko" />
 <meta name="author" content="SantosJGND" />
 <meta property="og:locale" content="en_US" />
@@ -58,40 +58,40 @@
 
 <figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">class</span> <span class="nc">ConnectorParamiko</span><span class="p">(</span><span class="n">Connector</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">config_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="nf">super</span><span class="p">().</span><span class="nf">__init__</span><span class="p">()</span>
-        <span class="n">self</span><span class="p">.</span><span class="nf">prep_input</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
-        <span class="n">self</span><span class="p">.</span><span class="nf">connect</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">().</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">prep_input</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">connect</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="n">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
-        <span class="n">paramiko_rsa_key</span> <span class="o">=</span> <span class="n">paramiko</span><span class="p">.</span><span class="n">RSAKey</span><span class="p">.</span><span class="nf">from_private_key_file</span><span class="p">(</span>
-            <span class="n">self</span><span class="p">.</span><span class="n">rsa_key_path</span><span class="p">)</span>
-        <span class="n">self</span><span class="p">.</span><span class="n">rsa_key</span> <span class="o">=</span> <span class="n">paramiko_rsa_key</span>
+        <span class="n">paramiko_rsa_key</span> <span class="o">=</span> <span class="n">paramiko</span><span class="p">.</span><span class="n">RSAKey</span><span class="p">.</span><span class="n">from_private_key_file</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">.</span><span class="n">rsa_key_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">rsa_key</span> <span class="o">=</span> <span class="n">paramiko_rsa_key</span>
 
-        <span class="n">self</span><span class="p">.</span><span class="n">conn</span> <span class="o">=</span> <span class="n">paramiko</span><span class="p">.</span><span class="nc">SSHClient</span><span class="p">()</span>
-        <span class="n">self</span><span class="p">.</span><span class="n">conn</span><span class="p">.</span><span class="nf">set_missing_host_key_policy</span><span class="p">(</span><span class="n">paramiko</span><span class="p">.</span><span class="nc">AutoAddPolicy</span><span class="p">())</span>
-        <span class="n">self</span><span class="p">.</span><span class="nf">test_connection</span><span class="p">()</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">conn</span> <span class="o">=</span> <span class="n">paramiko</span><span class="p">.</span><span class="n">SSHClient</span><span class="p">()</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">conn</span><span class="p">.</span><span class="n">set_missing_host_key_policy</span><span class="p">(</span><span class="n">paramiko</span><span class="p">.</span><span class="n">AutoAddPolicy</span><span class="p">())</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">test_connection</span><span class="p">()</span>
 
 
-    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="n">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
         <span class="k">try</span><span class="p">:</span>
 
-            <span class="n">self</span><span class="p">.</span><span class="n">conn</span><span class="p">.</span><span class="nf">connect</span><span class="p">(</span>
-                <span class="n">hostname</span><span class="o">=</span><span class="sa">f</span><span class="s">"</span><span class="si">{</span><span class="n">self</span><span class="p">.</span><span class="n">ip_address</span><span class="si">}</span><span class="s">"</span><span class="p">,</span>
-                <span class="n">username</span><span class="o">=</span><span class="sa">f</span><span class="s">"</span><span class="si">{</span><span class="n">self</span><span class="p">.</span><span class="n">username</span><span class="si">}</span><span class="s">"</span><span class="p">,</span>
-                <span class="n">pkey</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">rsa_key</span>
+            <span class="bp">self</span><span class="p">.</span><span class="n">conn</span><span class="p">.</span><span class="n">connect</span><span class="p">(</span>
+                <span class="n">hostname</span><span class="o">=</span><span class="sa">f</span><span class="s">"</span><span class="si">{</span><span class="bp">self</span><span class="p">.</span><span class="n">ip_address</span><span class="si">}</span><span class="s">"</span><span class="p">,</span>
+                <span class="n">username</span><span class="o">=</span><span class="sa">f</span><span class="s">"</span><span class="si">{</span><span class="bp">self</span><span class="p">.</span><span class="n">username</span><span class="si">}</span><span class="s">"</span><span class="p">,</span>
+                <span class="n">pkey</span><span class="o">=</span><span class="bp">self</span><span class="p">.</span><span class="n">rsa_key</span>
             <span class="p">)</span>
 
         <span class="k">except</span> <span class="n">paramiko</span><span class="p">.</span><span class="n">ssh_exception</span><span class="p">.</span><span class="n">SSHException</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-            <span class="nf">print</span><span class="p">(</span><span class="s">"SSH connection error"</span><span class="p">)</span>
-            <span class="n">sys</span><span class="p">.</span><span class="nf">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">"SSH connection error"</span><span class="p">)</span>
+            <span class="n">sys</span><span class="p">.</span><span class="nb">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">self</span>
+        <span class="k">return</span> <span class="bp">self</span>
 
-    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">):</span>
-        <span class="n">self</span><span class="p">.</span><span class="n">conn</span><span class="p">.</span><span class="nf">close</span><span class="p">()</span></code></pre></figure>
+    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">):</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">conn</span><span class="p">.</span><span class="n">close</span><span class="p">()</span></code></pre></figure>
 
 <p>In the code above, <code class="language-plaintext highlighter-rouge">self.conn</code> is an instance of <code class="language-plaintext highlighter-rouge">paramiko.SSHClient()</code>. The <code class="language-plaintext highlighter-rouge">__enter__</code> method establishes the connection, and the <code class="language-plaintext highlighter-rouge">__exit__</code> method closes it.</p>
 
@@ -101,22 +101,22 @@
 
 <p>After some research, I found a solution that works. It turns out you can have nested context managers. So i could yield the <code class="language-plaintext highlighter-rouge">MockSSH</code> context manager from the <code class="language-plaintext highlighter-rouge">ConnectorParamiko</code> context manager, and then use the <code class="language-plaintext highlighter-rouge">MockSSH</code> context manager to mock the methods of <code class="language-plaintext highlighter-rouge">paramiko.SSHClient()</code>:</p>
 
-<figure class="highlight"><pre><code class="language-python" data-lang="python">    <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="n">self</span><span class="p">):</span>
+<figure class="highlight"><pre><code class="language-python" data-lang="python">    <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="s">"""
         create local ssh mock server"""</span>
         <span class="n">users</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s">"test-user"</span><span class="p">:</span> <span class="s">"/home/bioinf/.ssh/id_rsa"</span><span class="p">,</span>
         <span class="p">}</span>
-        <span class="n">self</span><span class="p">.</span><span class="n">server</span> <span class="o">=</span> <span class="n">mockssh</span><span class="p">.</span><span class="nc">Server</span><span class="p">(</span><span class="n">users</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">server</span> <span class="o">=</span> <span class="n">mockssh</span><span class="p">.</span><span class="n">Server</span><span class="p">(</span><span class="n">users</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="n">self</span><span class="p">):</span>
-        <span class="n">self</span><span class="p">.</span><span class="n">server</span><span class="p">.</span><span class="nf">__enter__</span><span class="p">()</span>
-        <span class="k">with</span> <span class="n">self</span><span class="p">.</span><span class="n">server</span> <span class="k">as</span> <span class="n">s</span><span class="p">:</span>
-            <span class="n">self</span><span class="p">.</span><span class="n">conn</span> <span class="o">=</span> <span class="n">s</span><span class="p">.</span><span class="nf">client</span><span class="p">(</span><span class="s">"test-user"</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">self</span>
+    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">server</span><span class="p">.</span><span class="n">__enter__</span><span class="p">()</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="p">.</span><span class="n">server</span> <span class="k">as</span> <span class="n">s</span><span class="p">:</span>
+            <span class="bp">self</span><span class="p">.</span><span class="n">conn</span> <span class="o">=</span> <span class="n">s</span><span class="p">.</span><span class="n">client</span><span class="p">(</span><span class="s">"test-user"</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span>
 
-    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">):</span>
-        <span class="n">self</span><span class="p">.</span><span class="n">server</span><span class="p">.</span><span class="nf">__exit__</span><span class="p">(</span><span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">)</span></code></pre></figure>
+    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">):</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">server</span><span class="p">.</span><span class="n">__exit__</span><span class="p">(</span><span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">)</span></code></pre></figure>
 
 <p>The <code class="language-plaintext highlighter-rouge">connect</code> method creates a mock server, and the <code class="language-plaintext highlighter-rouge">__enter__</code> method yields the mock server context manager. The <code class="language-plaintext highlighter-rouge">__exit__</code> method closes the mock server. The <code class="language-plaintext highlighter-rouge">__enter__</code> method also yields the <code class="language-plaintext highlighter-rouge">paramiko.SSHClient()</code> context manager, and returns the <code class="language-plaintext highlighter-rouge">ConnectorParamiko</code> object. This way, the <code class="language-plaintext highlighter-rouge">ConnectorParamiko</code> object can be used to mock the methods of <code class="language-plaintext highlighter-rouge">paramiko.SSHClient()</code>.</p>
 
@@ -133,16 +133,20 @@
 
     <div class="footer-col-wrapper">
       <div class="footer-col">
-        <p class="feed-subscribe">
-          <a href="http://localhost:4000/feed.xml">
-            <svg class="svg-icon orange">
-              <use xlink:href="/assets/minima-social-icons.svg#rss"></use>
-            </svg><span>Subscribe</span>
-          </a>
-        </p>
         <ul class="contact-list">
           <li class="p-name">SantosJGND</li>
-          <li><a class="u-email" href="mailto:dourado.jns@gmail.com">dourado.jns@gmail.com</a></li>
+          <li>
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a class="u-url" href="https://github.com/SantosJGND">SantosJGND</a>
+            </li>
+            <li>
+                <i class="fa fa-twitter" aria-hidden="true"></i>
+                <a class="u-url" href="">SantosJGND</a>
+            </li>
+            <li>
+                <i class="fa fa-envelope" aria-hidden="true"></i>
+                <a class="u-email" href="mailto:dourado.jns@gmail.com">dourado.jns@gmail.com</a>
+            </li>
         </ul>
       </div>
       <div class="footer-col">
@@ -160,3 +164,5 @@
 </body>
 
 </html>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">

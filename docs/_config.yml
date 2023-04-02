@@ -2,6 +2,8 @@ title: Research Log
 author:
   name: SantosJGND
   email: dourado.jns@gmail.com
+  github: https://github.com/SantosJGND
+  twitter: https://twitter.com/SantosJGND
 
 # The `>` after `description:` means to ignore line-breaks until next key.
 # If you want to omit the line-break after the end of text, use `>-` instead.
@@ -55,3 +57,8 @@ minima:
 # Set to `true` to show excerpts on the homepage.
 #
 # show_excerpts: false
+plugins:
+  - jekyll-font-awesome-sass
+  - kramdown-parser-gfm
+font-awesome:
+  assets: true
