@@ -63,7 +63,7 @@ One thing to consider going forward is that a tree may not include all present g
 
 The coalescent is the process by which two genes in a population merge into a single gene. Looking at the tree above you will notice that this is only possible going from the leaves to the root. This is an important concept to keep in mind: in coalescent theory, we are going backwards in time, from the present to the past.
 
-With this in mind, we find that the probability of a coalescent event occuring in a given generation is given by $\frac{1}{2Ne}$, where $ Ne $ eis the population size.
+With this in mind, we find that the probability of a coalescent event occuring in a given generation is given by $\mu$${2Ne}$, where $ Ne $ eis the population size.
 
 #### Mutation
 
