@@ -79,7 +79,9 @@ PLATFORMS
 
 DEPENDENCIES
   bundler
+  jekyll-feed (~> 0.9)
   jekyll-font-awesome-sass
+  jekyll-seo-tag (~> 2.1)
   kramdown-parser-gfm
   minima!
 

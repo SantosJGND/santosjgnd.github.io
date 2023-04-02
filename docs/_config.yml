@@ -25,7 +25,8 @@ theme: minima
 plugins:
   - jekyll-feed
   - jekyll-seo-tag
-
+  - jekyll-font-awesome-sass
+  - kramdown-parser-gfm
 # Theme-specific settings
 markdown: kramdown
 minima:
@@ -62,9 +63,7 @@ minima:
 # Set to `true` to show excerpts on the homepage.
 #
 # show_excerpts: false
-plugins:
-  - jekyll-font-awesome-sass
-  - kramdown-parser-gfm
+
 font-awesome:
   assets: true
 #remote_theme: chrishasz/yaght
