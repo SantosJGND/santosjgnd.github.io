@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Unit testing Paramiko | Research Log</title>
+<meta name="generator" content="Jekyll v4.3.2" />
+<meta property="og:title" content="Unit testing Paramiko" />
+<meta name="author" content="SantosJGND" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="This post came about while writting unit tests for a project that uses Paramiko, a python library for running in-python ssh commands. For context, in this project a user can upload a file to a server, and the server will run a script on the file. The script is run on the server, not on the user’s computer. Communication between the user and the server, i.e. running commands on the server, uploading and downloading files, is done through ssh using paramiko." />
+<meta property="og:description" content="This post came about while writting unit tests for a project that uses Paramiko, a python library for running in-python ssh commands. For context, in this project a user can upload a file to a server, and the server will run a script on the file. The script is run on the server, not on the user’s computer. Communication between the user and the server, i.e. running commands on the server, uploading and downloading files, is done through ssh using paramiko." />
+<link rel="canonical" href="http://localhost:4000/python/unit-tests/paramiko/2023/03/25/paramiko-tests.html" />
+<meta property="og:url" content="http://localhost:4000/python/unit-tests/paramiko/2023/03/25/paramiko-tests.html" />
+<meta property="og:site_name" content="Research Log" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-03-25T23:34:26+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Unit testing Paramiko" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"SantosJGND"},"dateModified":"2023-03-25T23:34:26+00:00","datePublished":"2023-03-25T23:34:26+00:00","description":"This post came about while writting unit tests for a project that uses Paramiko, a python library for running in-python ssh commands. For context, in this project a user can upload a file to a server, and the server will run a script on the file. The script is run on the server, not on the user’s computer. Communication between the user and the server, i.e. running commands on the server, uploading and downloading files, is done through ssh using paramiko.","headline":"Unit testing Paramiko","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/python/unit-tests/paramiko/2023/03/25/paramiko-tests.html"},"url":"http://localhost:4000/python/unit-tests/paramiko/2023/03/25/paramiko-tests.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Research Log" />
+
+
+  
+</head>
+<body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">Research Log</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Unit testing Paramiko</h1>
+    <p class="post-meta"><time class="dt-published" datetime="2023-03-25T23:34:26+00:00" itemprop="datePublished">
+        Mar 25, 2023
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>This post came about while writting unit tests for a project that uses <a href="https://www.paramiko.org/">Paramiko</a>, a python library for running in-python ssh commands. For context, in this project a user can upload a file to a server, and the server will run a script on the file. The script is run on the server, not on the user’s computer. Communication between the user and the server, i.e. running commands on the server, uploading and downloading files, is done through ssh using paramiko.</p>
+
+<p>For this purpose i created a context manager responsible for establishing, and closing, the connection to the server. This worked as follows:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">class</span> <span class="nc">ConnectorParamiko</span><span class="p">(</span><span class="n">Connector</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">config_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="nf">super</span><span class="p">().</span><span class="nf">__init__</span><span class="p">()</span>
+        <span class="n">self</span><span class="p">.</span><span class="nf">prep_input</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+        <span class="n">self</span><span class="p">.</span><span class="nf">connect</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="n">self</span><span class="p">):</span>
+
+        <span class="n">paramiko_rsa_key</span> <span class="o">=</span> <span class="n">paramiko</span><span class="p">.</span><span class="n">RSAKey</span><span class="p">.</span><span class="nf">from_private_key_file</span><span class="p">(</span>
+            <span class="n">self</span><span class="p">.</span><span class="n">rsa_key_path</span><span class="p">)</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">rsa_key</span> <span class="o">=</span> <span class="n">paramiko_rsa_key</span>
+
+        <span class="n">self</span><span class="p">.</span><span class="n">conn</span> <span class="o">=</span> <span class="n">paramiko</span><span class="p">.</span><span class="nc">SSHClient</span><span class="p">()</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">conn</span><span class="p">.</span><span class="nf">set_missing_host_key_policy</span><span class="p">(</span><span class="n">paramiko</span><span class="p">.</span><span class="nc">AutoAddPolicy</span><span class="p">())</span>
+        <span class="n">self</span><span class="p">.</span><span class="nf">test_connection</span><span class="p">()</span>
+
+
+    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="n">self</span><span class="p">):</span>
+
+        <span class="k">try</span><span class="p">:</span>
+
+            <span class="n">self</span><span class="p">.</span><span class="n">conn</span><span class="p">.</span><span class="nf">connect</span><span class="p">(</span>
+                <span class="n">hostname</span><span class="o">=</span><span class="sa">f</span><span class="s">"</span><span class="si">{</span><span class="n">self</span><span class="p">.</span><span class="n">ip_address</span><span class="si">}</span><span class="s">"</span><span class="p">,</span>
+                <span class="n">username</span><span class="o">=</span><span class="sa">f</span><span class="s">"</span><span class="si">{</span><span class="n">self</span><span class="p">.</span><span class="n">username</span><span class="si">}</span><span class="s">"</span><span class="p">,</span>
+                <span class="n">pkey</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">rsa_key</span>
+            <span class="p">)</span>
+
+        <span class="k">except</span> <span class="n">paramiko</span><span class="p">.</span><span class="n">ssh_exception</span><span class="p">.</span><span class="n">SSHException</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="nf">print</span><span class="p">(</span><span class="s">"SSH connection error"</span><span class="p">)</span>
+            <span class="n">sys</span><span class="p">.</span><span class="nf">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">self</span>
+
+    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">):</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">conn</span><span class="p">.</span><span class="nf">close</span><span class="p">()</span></code></pre></figure>
+
+<p>In the code above, <code class="language-plaintext highlighter-rouge">self.conn</code> is an instance of <code class="language-plaintext highlighter-rouge">paramiko.SSHClient()</code>. The <code class="language-plaintext highlighter-rouge">__enter__</code> method establishes the connection, and the <code class="language-plaintext highlighter-rouge">__exit__</code> method closes it.</p>
+
+<p>Other methods of <code class="language-plaintext highlighter-rouge">ConnectorParamiko</code> depend on Paramiko methods, such as <code class="language-plaintext highlighter-rouge">self.conn.exec_command()</code>, <code class="language-plaintext highlighter-rouge">self.conn.put()</code>, <code class="language-plaintext highlighter-rouge">self.conn.get()</code>, etc.</p>
+
+<p>And this works fine, until you try to write unit tests for it. First you need to mock the <code class="language-plaintext highlighter-rouge">paramiko.SSHClient()</code> object, and you need to mock the methods that depend on it. And you need a way to mock a remote server. The package <a href="https://pypi.org/project/MockSSH/"><code class="language-plaintext highlighter-rouge">MockSSH</code></a>, built on top of <code class="language-plaintext highlighter-rouge">paramiko</code>, has been created for this exact purpose. It allows you to create a mock server, and to mock the methods of <code class="language-plaintext highlighter-rouge">paramiko.SSHClient()</code>. But <code class="language-plaintext highlighter-rouge">MockSSH</code> is a context manager, and so is <code class="language-plaintext highlighter-rouge">ConnectorParamiko</code>, so how do you use them together to test the methods of <code class="language-plaintext highlighter-rouge">ConnectorParamiko</code>?</p>
+
+<p>After some research, I found a solution that works. It turns out you can have nested context managers. So i could yield the <code class="language-plaintext highlighter-rouge">MockSSH</code> context manager from the <code class="language-plaintext highlighter-rouge">ConnectorParamiko</code> context manager, and then use the <code class="language-plaintext highlighter-rouge">MockSSH</code> context manager to mock the methods of <code class="language-plaintext highlighter-rouge">paramiko.SSHClient()</code>:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python">    <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="n">self</span><span class="p">):</span>
+        <span class="s">"""
+        create local ssh mock server"""</span>
+        <span class="n">users</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s">"test-user"</span><span class="p">:</span> <span class="s">"/home/bioinf/.ssh/id_rsa"</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">server</span> <span class="o">=</span> <span class="n">mockssh</span><span class="p">.</span><span class="nc">Server</span><span class="p">(</span><span class="n">users</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="n">self</span><span class="p">):</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">server</span><span class="p">.</span><span class="nf">__enter__</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">self</span><span class="p">.</span><span class="n">server</span> <span class="k">as</span> <span class="n">s</span><span class="p">:</span>
+            <span class="n">self</span><span class="p">.</span><span class="n">conn</span> <span class="o">=</span> <span class="n">s</span><span class="p">.</span><span class="nf">client</span><span class="p">(</span><span class="s">"test-user"</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">self</span>
+
+    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">):</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">server</span><span class="p">.</span><span class="nf">__exit__</span><span class="p">(</span><span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">)</span></code></pre></figure>
+
+<p>The <code class="language-plaintext highlighter-rouge">connect</code> method creates a mock server, and the <code class="language-plaintext highlighter-rouge">__enter__</code> method yields the mock server context manager. The <code class="language-plaintext highlighter-rouge">__exit__</code> method closes the mock server. The <code class="language-plaintext highlighter-rouge">__enter__</code> method also yields the <code class="language-plaintext highlighter-rouge">paramiko.SSHClient()</code> context manager, and returns the <code class="language-plaintext highlighter-rouge">ConnectorParamiko</code> object. This way, the <code class="language-plaintext highlighter-rouge">ConnectorParamiko</code> object can be used to mock the methods of <code class="language-plaintext highlighter-rouge">paramiko.SSHClient()</code>.</p>
+
+<p>That’s it. Forgive me if this was obvious, but I couldn’t find a solution anywhere else. I hope this helps someone.</p>
+
+  </div><a class="u-url" href="/python/unit-tests/paramiko/2023/03/25/paramiko-tests.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col">
+        <p class="feed-subscribe">
+          <a href="http://localhost:4000/feed.xml">
+            <svg class="svg-icon orange">
+              <use xlink:href="/assets/minima-social-icons.svg#rss"></use>
+            </svg><span>Subscribe</span>
+          </a>
+        </p>
+        <ul class="contact-list">
+          <li class="p-name">SantosJGND</li>
+          <li><a class="u-email" href="mailto:dourado.jns@gmail.com">dourado.jns@gmail.com</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <p>A technical account of my research path where I expose the problems I faced and how I solved them, with some detours into interesting tangents along the way.
+</p>
+      </div>
+    </div>
+
+    <div class="social-links"><ul class="social-media-list"></ul>
+</div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

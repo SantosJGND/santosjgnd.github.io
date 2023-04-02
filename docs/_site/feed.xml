@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2023-04-02T11:38:49+01:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Research Log</title><subtitle>A technical account of my research path where I expose the problems I faced and how I solved them, with some detours into interesting tangents along the way.
+</subtitle><author><name>SantosJGND</name><email>dourado.jns@gmail.com</email></author><entry><title type="html">Coalescent Theory in Python - Introduction</title><link href="http://localhost:4000/python/genetics/coalescent/theory/introduction/2023/04/01/new-post.html" rel="alternate" type="text/html" title="Coalescent Theory in Python - Introduction" /><published>2023-04-01T11:23:29+01:00</published><updated>2023-04-01T11:23:29+01:00</updated><id>http://localhost:4000/python/genetics/coalescent/theory/introduction/2023/04/01/new-post</id><content type="html" xml:base="http://localhost:4000/python/genetics/coalescent/theory/introduction/2023/04/01/new-post.html">&lt;p&gt;This week i had no particular magic happen at work, so I decided to begin transitioning some material i have previosuly hosted in jupyter notebooks to this blog. I will be posting a series of posts on the coalescent theory, which is a branch of probability theory that is used in population genetics. I wrote them while taking classes on the subject under &lt;a href=&quot;http://jjensenlab.org/&quot;&gt;Dr. Jeffrey Jensen&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;The series was motivated by wanting to combine two things i am interested in: genetics and programming, particularly python. While the package &lt;a href=&quot;https://msprime.readthedocs.io/en/stable/&quot;&gt;msprime&lt;/a&gt; is a great tool for simulating genetic data, I did not encounter python modules for the more basic aspects of coalescent theory. This repository attempted to fill that gap, and provide a reference for myself.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;In case that reference does exist, i figured it was still good practice, but please let me know.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Before we get into it though, some background on the coalescent theory. Feel free to skip to the next post if you are already familiar with the subject.&lt;/p&gt;
+
+&lt;h3 id=&quot;short-introduction-to-coalescent-theory&quot;&gt;Short introduction to coalescent theory&lt;/h3&gt;
+
+&lt;p&gt;Coalescent theory is a branch of probability theory that is used in population genetics. It is used to calculate the probability of a given genealogy, given a set of parameters. Inversely, and more importantly, it can be used to infer important parameters of a population, such as the population size, the mutation rate, and the recombination rate, for a given genealogy. Methods of inference can be analytical, using math, or numerical, using simulations.&lt;/p&gt;
+
+&lt;p&gt;Some definitions.&lt;/p&gt;
+
+&lt;h4 id=&quot;genes&quot;&gt;Genes&lt;/h4&gt;
+
+&lt;p&gt;In the context of coalescent theory, we think of genealogy from the perspective of a single gene.&lt;/p&gt;
+
+&lt;p&gt;Genes are the units of inheritance. They are the sequences of DNA that are passed from parent to offspring. Alleles are the different versions of a gene. For example, the gene for eye color can have two alleles, one for blue eyes, and one for brown eyes.&lt;/p&gt;
+
+&lt;h4 id=&quot;the-genealogy-of-a-population&quot;&gt;The Genealogy of a population&lt;/h4&gt;
+
+&lt;p&gt;The genealogy of a population is a tree that describes the ancestry of a population. Each node in the tree represents a single gene, the root of the tree represents the most recent common ancestor of the population. The leaves of the tree represent the genes in the current population, e.g.&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;         1
+      /     \
+     2       3
+    / \     / \
+   4   5   6   7
+  / \ / \ / \ / \
+ 8  9 10 11 12 13 14
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;One thing to consider going forward is that a tree may not include all present genes, and thus not all ancestors. It then consists of all common ancestors of a subset of modern genes up to the root, e.g.:&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;         1
+      /    \
+     x      3
+    / \    / \
+   x   x   x   x
+  / \ / \ / \ / \
+ 8  x x x  12 x  14
+
+
+           1
+        /    \
+       /      3
+      /      / \
+     8      12 14
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h4 id=&quot;the-coalescent&quot;&gt;The coalescent&lt;/h4&gt;
+
+&lt;p&gt;The coalescent is the process by which two genes in a population merge into a single gene. Looking at the tree above you will notice that this is only possible going from the leaves to the root. This is an important concept to keep in mind: in coalescent theory, we are going backwards in time, from the present to the past.&lt;/p&gt;
+
+&lt;p&gt;With this in mind, we find that the probability of a coalescent event occuring in a given generation is given by $\frac{1}{2Ne}$, where $ Ne $ eis the population size.&lt;/p&gt;
+
+&lt;h4 id=&quot;mutation&quot;&gt;Mutation&lt;/h4&gt;
+
+&lt;p&gt;Mutation is the process by which a new allele is introduced into a population. The rate of new mutations is the probability of such an event, usually calculated by genereration. In the context of coalescent theory, we think of mutations as occuring against the tree above, such that as we traverse the tree (from the bottom up), the probability of a mutation occuring is given by the mutation rate, $\mu$, times the length of a branch in generations.&lt;/p&gt;
+
+&lt;p&gt;The probability of a mutation occuring in a given generation across a population is given by $\mu4Ne$, where $Ne$ is the population size.&lt;/p&gt;
+
+&lt;h3 id=&quot;the-coalescent-process&quot;&gt;The coalescent process&lt;/h3&gt;
+
+&lt;p&gt;Putting the above together, as we move up the tree one of two things can happen: a coalescent event, or a mutation event. In either case our state, the number of alleles in the case of a coalescent event, or the number of alleles plus the number of mutations in the case of a mutation event, changes.&lt;/p&gt;
+
+&lt;p&gt;The coalescent process is thus a stochastic process that describes the evolution of a population of individuals according to the following rules:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;A coalescent event occurs between identical alleles with probability $\frac{1}{2Ne}$, where $Ne$ is the population size.&lt;/li&gt;
+  &lt;li&gt;A mutation event occurs with probability $\mu2Ne$, where $Ne$ is the population size.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;The coalescent process is a Markov chain, which means that the probability of a given state depends only on the previous state. This is important because it allows us to calculate the probability of a given genealogy, given a set of parameters. This is done by calculating the probability of the genealogy, given the previous state, and multiplying it by the probability of the previous state, given the previous previous state, and so on, until we reach the root of the tree.&lt;/p&gt;</content><author><name>SantosJGND</name><email>dourado.jns@gmail.com</email></author><category term="python" /><category term="genetics" /><category term="coalescent" /><category term="theory" /><category term="introduction" /><summary type="html">This week i had no particular magic happen at work, so I decided to begin transitioning some material i have previosuly hosted in jupyter notebooks to this blog. I will be posting a series of posts on the coalescent theory, which is a branch of probability theory that is used in population genetics. I wrote them while taking classes on the subject under Dr. Jeffrey Jensen.</summary></entry><entry><title type="html">Unit testing Paramiko</title><link href="http://localhost:4000/python/unit-tests/paramiko/2023/03/25/paramiko-tests.html" rel="alternate" type="text/html" title="Unit testing Paramiko" /><published>2023-03-25T23:34:26+00:00</published><updated>2023-03-25T23:34:26+00:00</updated><id>http://localhost:4000/python/unit-tests/paramiko/2023/03/25/paramiko-tests</id><content type="html" xml:base="http://localhost:4000/python/unit-tests/paramiko/2023/03/25/paramiko-tests.html">&lt;p&gt;This post came about while writting unit tests for a project that uses &lt;a href=&quot;https://www.paramiko.org/&quot;&gt;Paramiko&lt;/a&gt;, a python library for running in-python ssh commands. For context, in this project a user can upload a file to a server, and the server will run a script on the file. The script is run on the server, not on the user’s computer. Communication between the user and the server, i.e. running commands on the server, uploading and downloading files, is done through ssh using paramiko.&lt;/p&gt;
+
+&lt;p&gt;For this purpose i created a context manager responsible for establishing, and closing, the connection to the server. This worked as follows:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ConnectorParamiko&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Connector&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;__init__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;config_file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;nf&quot;&gt;super&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;__init__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;prep_input&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;config_file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;connect&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;connect&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+
+        &lt;span class=&quot;n&quot;&gt;paramiko_rsa_key&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;paramiko&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RSAKey&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;from_private_key_file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rsa_key_path&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rsa_key&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;paramiko_rsa_key&lt;/span&gt;
+
+        &lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conn&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;paramiko&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;SSHClient&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;set_missing_host_key_policy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;paramiko&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;AutoAddPolicy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;test_connection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;__enter__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+
+        &lt;span class=&quot;k&quot;&gt;try&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+
+            &lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;connect&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;hostname&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;sa&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ip_address&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;username&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;sa&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;username&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;pkey&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rsa_key&lt;/span&gt;
+            &lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+        &lt;span class=&quot;k&quot;&gt;except&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;paramiko&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ssh_exception&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;SSHException&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;as&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;nf&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;SSH connection error&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;exit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;__exit__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exc_type&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exc_val&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exc_tb&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;close&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;In the code above, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;self.conn&lt;/code&gt; is an instance of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;paramiko.SSHClient()&lt;/code&gt;. The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;__enter__&lt;/code&gt; method establishes the connection, and the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;__exit__&lt;/code&gt; method closes it.&lt;/p&gt;
+
+&lt;p&gt;Other methods of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ConnectorParamiko&lt;/code&gt; depend on Paramiko methods, such as &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;self.conn.exec_command()&lt;/code&gt;, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;self.conn.put()&lt;/code&gt;, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;self.conn.get()&lt;/code&gt;, etc.&lt;/p&gt;
+
+&lt;p&gt;And this works fine, until you try to write unit tests for it. First you need to mock the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;paramiko.SSHClient()&lt;/code&gt; object, and you need to mock the methods that depend on it. And you need a way to mock a remote server. The package &lt;a href=&quot;https://pypi.org/project/MockSSH/&quot;&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MockSSH&lt;/code&gt;&lt;/a&gt;, built on top of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;paramiko&lt;/code&gt;, has been created for this exact purpose. It allows you to create a mock server, and to mock the methods of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;paramiko.SSHClient()&lt;/code&gt;. But &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MockSSH&lt;/code&gt; is a context manager, and so is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ConnectorParamiko&lt;/code&gt;, so how do you use them together to test the methods of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ConnectorParamiko&lt;/code&gt;?&lt;/p&gt;
+
+&lt;p&gt;After some research, I found a solution that works. It turns out you can have nested context managers. So i could yield the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MockSSH&lt;/code&gt; context manager from the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ConnectorParamiko&lt;/code&gt; context manager, and then use the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MockSSH&lt;/code&gt; context manager to mock the methods of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;paramiko.SSHClient()&lt;/code&gt;:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;connect&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;&quot;&quot;&quot;
+        create local ssh mock server&quot;&quot;&quot;&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;users&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;s&quot;&gt;&quot;test-user&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;/home/bioinf/.ssh/id_rsa&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;mockssh&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Server&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;users&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;__enter__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;server&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;__enter__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;with&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;as&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conn&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;client&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;test-user&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;__exit__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exc_type&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exc_value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;traceback&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;server&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;__exit__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;exc_type&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exc_value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;traceback&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;connect&lt;/code&gt; method creates a mock server, and the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;__enter__&lt;/code&gt; method yields the mock server context manager. The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;__exit__&lt;/code&gt; method closes the mock server. The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;__enter__&lt;/code&gt; method also yields the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;paramiko.SSHClient()&lt;/code&gt; context manager, and returns the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ConnectorParamiko&lt;/code&gt; object. This way, the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ConnectorParamiko&lt;/code&gt; object can be used to mock the methods of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;paramiko.SSHClient()&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;That’s it. Forgive me if this was obvious, but I couldn’t find a solution anywhere else. I hope this helps someone.&lt;/p&gt;</content><author><name>SantosJGND</name><email>dourado.jns@gmail.com</email></author><category term="python" /><category term="unit-tests" /><category term="paramiko" /><summary type="html">This post came about while writting unit tests for a project that uses Paramiko, a python library for running in-python ssh commands. For context, in this project a user can upload a file to a server, and the server will run a script on the file. The script is run on the server, not on the user’s computer. Communication between the user and the server, i.e. running commands on the server, uploading and downloading files, is done through ssh using paramiko.</summary></entry></feed>
