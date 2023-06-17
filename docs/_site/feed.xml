@@ -1,5 +1,90 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2023-06-17T14:47:19+01:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Research Log</title><subtitle>A technical account of my research path where I expose the problems I faced and how I solved them, with some detours into interesting tangents along the way.
-</subtitle><author><name>SantosJGND</name><email>dourado.jns@gmail.com</email></author><entry><title type="html">Coalescent Theory in Python - Introduction</title><link href="http://localhost:4000/python/genetics/coalescent/theory/introduction/2023/04/01/coalescent-intro.html" rel="alternate" type="text/html" title="Coalescent Theory in Python - Introduction" /><published>2023-04-01T11:23:29+01:00</published><updated>2023-04-01T11:23:29+01:00</updated><id>http://localhost:4000/python/genetics/coalescent/theory/introduction/2023/04/01/coalescent-intro</id><content type="html" xml:base="http://localhost:4000/python/genetics/coalescent/theory/introduction/2023/04/01/coalescent-intro.html"><![CDATA[<p>This week i had no particular magic happen at work, so I decided to begin transitioning some material i have previosuly hosted in jupyter notebooks to this blog. I will be posting a series of posts on the coalescent theory, which is a branch of probability theory that is used in population genetics. I wrote them while taking classes on the subject under <a href="http://jjensenlab.org/">Dr. Jeffrey Jensen</a>.</p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2023-06-17T14:51:23+01:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Research Log</title><subtitle>A technical account of my research path where I expose the problems I faced and how I solved them, with some detours into interesting tangents along the way.
+</subtitle><author><name>SantosJGND</name><email>dourado.jns@gmail.com</email></author><entry><title type="html">Deepcopy - Locks</title><link href="http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy.html" rel="alternate" type="text/html" title="Deepcopy - Locks" /><published>2023-06-17T11:23:29+01:00</published><updated>2023-06-17T11:23:29+01:00</updated><id>http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy</id><content type="html" xml:base="http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy.html"><![CDATA[<p>Writting this post about a recent problem i had with deepcopy, and how i solved it.</p>
+
+<p>NOTE: this post addresses an issue with the <code class="language-plaintext highlighter-rouge">logging</code> python package that was solved in version <code class="language-plaintext highlighter-rouge">3.7</code>, so if you do not find yourself under a similar constraint, it won’t have practical value.</p>
+
+<h3 id="the-problem">The problem</h3>
+
+<p>Working on a project that involved generating copies of a complex class. Specifically, instances of this class correspond to nodes in 
+a self-generating directed graph -&gt; a tree. Starting at the root, at each generation the tree generates a new layer of nodes from existing leaves,
+leaves are given new ids and settings, after which they are submitted (or logged) and the process repeats. e.g.:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="k">def</span> <span class="nf">update_nodes</span><span class="p">(</span><span class="n">self</span><span class="p">):</span>
+        <span class="n">new_nodes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">current_nodes</span><span class="p">:</span>
+            <span class="n">children</span> <span class="o">=</span> <span class="n">node</span><span class="p">.</span><span class="n">children</span>
+            <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">children</span><span class="p">:</span>
+                <span class="n">new_node</span> <span class="o">=</span> <span class="n">self</span><span class="p">.</span><span class="nf">spawn_node_child</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">child</span><span class="p">)</span>
+                <span class="n">new_nodes</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="n">new_node</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>where <code class="language-plaintext highlighter-rouge">spawn_node_child</code> is a method that generates a new node from an existing node and a child id. The new node is then added to the list of current nodes, and the process repeats.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="k">def</span> <span class="nf">spawn_node_child</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Tree_Node</span><span class="p">,</span> <span class="n">child</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">new_node</span> <span class="o">=</span> <span class="nc">Tree_Node</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">tree</span><span class="p">,</span> <span class="n">child</span><span class="p">,</span> <span class="n">node</span><span class="p">.</span><span class="n">software_tree_pk</span><span class="p">)</span>
+        <span class="n">run_manager_copy</span> <span class="o">=</span> <span class="n">copy</span><span class="p">.</span><span class="nf">deepcopy</span><span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="n">run_manager</span><span class="p">)</span>
+        <span class="n">new_node</span><span class="p">.</span><span class="nf">receive_run_manager</span><span class="p">(</span><span class="n">run_manager_copy</span><span class="p">)</span>
+        <span class="n">new_node</span><span class="p">.</span><span class="n">run_manager</span><span class="p">.</span><span class="nf">update_engine</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">new_node</span>
+</code></pre></div></div>
+
+<p>Here, nodes are complex classes that are already two layers of abstraction detatched from an analysis engine which they help manage the deployment of and the logging of results from. Copying allows us to keep track of the state of the tree at each generation, and to compare the results of different runs.</p>
+
+<p>The problem is that many of the major classes involved contain loggers, which include locks to prevent multiple threads from writing to the same file at the same time. The <code class="language-plaintext highlighter-rouge">deepcopy</code> function will try to copy the locks and break.</p>
+
+<h3 id="deepcoy">Deepcoy</h3>
+
+<p>So, deepcopy has runs a series of checks on the object to copy, one of which relies on a dictionary, <code class="language-plaintext highlighter-rouge">_copy_dispatch</code>, that maps the object type to a series of pre-defined functions for specific cases:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">_copy_dispatch</span> <span class="o">=</span> <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+
+<span class="k">def</span> <span class="nf">_copy_immutable</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">x</span>
+
+
+<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">(</span>
+    <span class="nf">type</span><span class="p">(</span><span class="bp">None</span><span class="p">),</span>
+    <span class="nb">int</span><span class="p">,</span>
+    <span class="nb">float</span><span class="p">,</span>
+    <span class="nb">bool</span><span class="p">,</span>
+   <span class="p">...</span>
+    <span class="nb">property</span><span class="p">,</span>
+    <span class="n">types</span><span class="p">.</span><span class="n">BuiltinFunctionType</span><span class="p">,</span>
+    <span class="nf">type</span><span class="p">(</span><span class="bp">Ellipsis</span><span class="p">),</span>
+    <span class="nf">type</span><span class="p">(</span><span class="nb">NotImplemented</span><span class="p">),</span>
+    <span class="n">types</span><span class="p">.</span><span class="n">FunctionType</span><span class="p">,</span>
+    <span class="n">weakref</span><span class="p">.</span><span class="n">ref</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">d</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">_copy_immutable</span>
+<span class="n">t</span> <span class="o">=</span> <span class="nf">getattr</span><span class="p">(</span><span class="n">types</span><span class="p">,</span> <span class="s">"CodeType"</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="n">d</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">_copy_immutable</span>
+
+<span class="n">d</span><span class="p">[</span><span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">.</span><span class="n">copy</span>
+
+</code></pre></div></div>
+<p>The most common of these pre-defined functions is <code class="language-plaintext highlighter-rouge">_copy_immutable</code>, which simply returns the object. This is the case for most of the objects in the tree, but not for the loggers.</p>
+
+<h3 id="the-solution">The solution</h3>
+
+<p>The solution is to add a new entry for logging.Logger to the <code class="language-plaintext highlighter-rouge">_copy_dispatch</code> dictionary that will return the same object without attempting to copy. This is done by adding the following code to the <code class="language-plaintext highlighter-rouge">__init__.py</code> file of the project:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="kn">from</span> <span class="n">copy</span> <span class="kn">import</span> <span class="n">_copy_immutable</span><span class="p">,</span> <span class="n">_deepcopy_dispatch</span>
+<span class="kn">import</span> <span class="n">logging</span>
+<span class="k">def</span> <span class="nf">logger_copy</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">x</span>
+
+
+<span class="n">copy</span><span class="p">.</span><span class="n">_deepcopy_dispatch</span><span class="p">[</span><span class="n">logging</span><span class="p">.</span><span class="n">Logger</span><span class="p">]</span> <span class="o">=</span> <span class="n">logger_copy</span>
+</code></pre></div></div>
+
+<h3 id="the-result">The result</h3>
+
+<p>The result is that the deepcopy function will now ignore the locks and copy the loggers. This is not a problem because, at least in this case, i wanted the loggers to continue to write to the same file.</p>]]></content><author><name>SantosJGND</name><email>dourado.jns@gmail.com</email></author><category term="python" /><category term="development" /><category term="deepcopy" /><summary type="html"><![CDATA[Writting this post about a recent problem i had with deepcopy, and how i solved it.]]></summary></entry><entry><title type="html">Coalescent Theory in Python - Introduction</title><link href="http://localhost:4000/python/genetics/coalescent/theory/introduction/2023/04/01/coalescent-intro.html" rel="alternate" type="text/html" title="Coalescent Theory in Python - Introduction" /><published>2023-04-01T11:23:29+01:00</published><updated>2023-04-01T11:23:29+01:00</updated><id>http://localhost:4000/python/genetics/coalescent/theory/introduction/2023/04/01/coalescent-intro</id><content type="html" xml:base="http://localhost:4000/python/genetics/coalescent/theory/introduction/2023/04/01/coalescent-intro.html"><![CDATA[<p>This week i had no particular magic happen at work, so I decided to begin transitioning some material i have previosuly hosted in jupyter notebooks to this blog. I will be posting a series of posts on the coalescent theory, which is a branch of probability theory that is used in population genetics. I wrote them while taking classes on the subject under <a href="http://jjensenlab.org/">Dr. Jeffrey Jensen</a>.</p>
 
 <p>The series was motivated by wanting to combine two things i am interested in: genetics and programming, particularly python. While the package <a href="https://msprime.readthedocs.io/en/stable/">msprime</a> is a great tool for simulating genetic data, I did not encounter python modules for the more basic aspects of coalescent theory. This repository attempted to fill that gap, and provide a reference for myself.</p>
 
