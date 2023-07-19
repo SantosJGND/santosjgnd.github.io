@@ -117,13 +117,6 @@ for chunk in chunk_matrix(profiles, 2):
     
     
 
-{% endhighlight %}
-
-            
-{% endhighlight %}
-
-
-
 
 # Conclusion
 

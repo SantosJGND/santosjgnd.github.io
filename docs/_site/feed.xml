@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2023-07-19T12:41:54+01:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Research Log</title><subtitle>A technical account of my research path where I expose the problems I faced and how I solved them, with some detours into interesting tangents along the way.
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2023-07-19T15:04:53+01:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Research Log</title><subtitle>A technical account of my research path where I expose the problems I faced and how I solved them, with some detours into interesting tangents along the way.
 </subtitle><author><name>SantosJGND</name><email>dourado.jns@gmail.com</email></author><entry><title type="html">Bionformatics, Matrix Multiplication and Hash Tables</title><link href="http://localhost:4000/bioinformatics/matrix-multiplication/hash-tables/counting/2023/07/19/bioinformatics-counts.html" rel="alternate" type="text/html" title="Bionformatics, Matrix Multiplication and Hash Tables" /><published>2023-07-19T00:34:26+01:00</published><updated>2023-07-19T00:34:26+01:00</updated><id>http://localhost:4000/bioinformatics/matrix-multiplication/hash-tables/counting/2023/07/19/bioinformatics-counts</id><content type="html" xml:base="http://localhost:4000/bioinformatics/matrix-multiplication/hash-tables/counting/2023/07/19/bioinformatics-counts.html"><![CDATA[<p>A common problem in bioinformatics is to count the number of times a sequence appears in a genome. For example, you might want to know how many times the sequence <code class="language-plaintext highlighter-rouge">ATG</code> appears in the genome of a given organism. This is a simple problem, but it can be computationally expensive. The genome of a bacteria can be millions of base pairs long, and the sequence you are looking for can be of any length. So how do you solve this problem efficiently?</p>
 
 <h3 id="constructing-profiles">Constructing profiles</h3>
@@ -31,68 +31,64 @@
 
 <p>This is more efficient. The <code class="language-plaintext highlighter-rouge">get</code> method of dictionaries has a time complexity of <code class="language-plaintext highlighter-rouge">O(1)</code>, so this will be faster than the membership test. The difference is not noticeable for small sequences, but it becomes noticeable for large sequences. Counting occurrences could be with little modifications.</p>
 
-<h3 id="counting-occurrences">Counting occurrences</h3>
+<h3 id="counting-shared-occurrences">Counting shared occurrences</h3>
 
-<p>This is a more difficult problem. The naive approach is to loop through the sequence, and for every position in the sequence, check if the pattern appears in that position. This is not efficient. For a sequence of length <code class="language-plaintext highlighter-rouge">n</code>, and a pattern of length <code class="language-plaintext highlighter-rouge">k</code>, this has a time complexity of <code class="language-plaintext highlighter-rouge">O(nk)</code>.</p>
+<p>The naive approach is to loop through the sequence, and for every position in the sequence, check if the pattern appears in another. This is not efficient. For a sequence of length <code class="language-plaintext highlighter-rouge">n</code>, and a pattern of length <code class="language-plaintext highlighter-rouge">k</code>, this has a time complexity of <code class="language-plaintext highlighter-rouge">O(nk)</code>.</p>
 
-<p>A more efficient approach is to use matrix multiplication. This is a technique that is used in many areas of bioinformatics, and it is worth learning.</p>
+<p>Lets try to solve this problem using matrix multiplication. Let’s say we have constructed a list of profiles,</p>
 
-<p>Lets begin by representing the sequence as a matrix. For example, the sequence <code class="language-plaintext highlighter-rouge">ATG</code> can be represented as:</p>
-
-<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">sequence</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">profiles</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
 <span class="p">]</span></code></pre></figure>
 
-<p>and the identity matrix of our reference set of letters can be represented as:</p>
+<p>And we wish to create a matrix of shared occurrences. We can do this by multiplying the transpose of the profiles with the profiles themselves, with the resulting product:</p>
 
-<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">pattern</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">product</span><span class="o">=</span> <span class="p">[</span>
+    <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
 <span class="p">]</span></code></pre></figure>
 
-<p>to establish the number of occurences of each letter in our sequence we can multiply the sequence matrix by the identity matrix. This is equivalent to counting the number of times each letter appears in the sequence. For example, the product of the two matrices above is:</p>
+<p>where the diagonal will represent the sum of patterns in each profile, and the off-diagonal elements will represent the number of shared occurrences between profiles.</p>
 
-<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">product</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">(</span>
-    <span class="p">[</span>
-    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-<span class="p">]</span>
-<span class="p">)</span></code></pre></figure>
+<p>this is easy in python using the numpy package:</p>
 
-<p>The first row of the product matrix tells us that the pattern appears once in the first position of the sequence. The second row tells us that the pattern appears once in the second position of the sequence. The third row tells us that the pattern does not appear in the third position of the sequence.</p>
-
-<p>We get the counts by simply summing the rows of the product matrix:</p>
-
-<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">sum</span><span class="p">(</span><span class="n">product</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></code></pre></figure>
-
-<p>This has the added advantage that matrix multiplication is very easy to perform in python using the numpy package. For the case above, the product mattrix would be calculated as follows:</p>
-
-<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="n">numpy</span> <span class="k">as</span> <span class="n">np</span>
-
-<span class="n">sequence</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span>
-    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">profiles</span><span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span>
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
 <span class="p">])</span>
 
 
-<span class="n">pattern</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span>
-    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-<span class="p">])</span>
+<span class="n">product</span> <span class="o">=</span> <span class="n">profiles</span> <span class="o">@</span> <span class="n">profiles</span><span class="p">.</span><span class="n">T</span></code></pre></figure>
 
-<span class="n">product</span> <span class="o">=</span> <span class="n">sequence</span> <span class="o">@</span> <span class="n">pattern</span><span class="p">.</span><span class="n">T</span></code></pre></figure>
+<p>This is much more efficient. The time complexity of matrix multiplication is <code class="language-plaintext highlighter-rouge">O(n^3)</code>, so this is much faster than the naive approach.</p>
 
-<p>It is also an example of how knowledge from different areas can be combined to solve a problem. In this case, the idea for using matrix multiplication came to me because i was studying coalescent theory, which relies heavily on markov chains, and markov chains can be represented as matrices.</p>
+<h3 id="very-large-matrices">very large matrices</h3>
 
-<p>I first came across this technique in the book <a href="https://www.bioinformaticsalgorithms.org/">Bioinformatics Algorithms</a>, by Phillip Compeau and Pavel Pevzner.</p>]]></content><author><name>SantosJGND</name><email>dourado.jns@gmail.com</email></author><category term="bioinformatics" /><category term="matrix-multiplication" /><category term="hash-tables" /><category term="counting" /><summary type="html"><![CDATA[A common problem in bioinformatics is to count the number of times a sequence appears in a genome. For example, you might want to know how many times the sequence ATG appears in the genome of a given organism. This is a simple problem, but it can be computationally expensive. The genome of a bacteria can be millions of base pairs long, and the sequence you are looking for can be of any length. So how do you solve this problem efficiently?]]></summary></entry><entry><title type="html">Deepcopy - Locks</title><link href="http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy.html" rel="alternate" type="text/html" title="Deepcopy - Locks" /><published>2023-06-17T11:23:29+01:00</published><updated>2023-06-17T11:23:29+01:00</updated><id>http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy</id><content type="html" xml:base="http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy.html"><![CDATA[<p>Writting this post about a recent problem i had with deepcopy, and how i solved it.</p>
+<p>While matrix multiplication is efficient, it is not practical to keep entire matrices in memory. The solution is to split these operations into chunks, e.g.:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">chunk_matrix</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">):</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nf">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">matrix</span><span class="p">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">chunk_size</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="n">matrix</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="n">chunk_size</span><span class="p">,</span> <span class="p">:]</span>
+
+
+<span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="nf">chunk_matrix</span><span class="p">(</span><span class="n">profiles</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+
+    <span class="n">subset_product</span><span class="o">=</span> <span class="n">chunk</span> <span class="o">@</span> <span class="n">profiles</span><span class="p">.</span><span class="n">T</span>
+
+    <span class="c1">## do something with subset_product</span></code></pre></figure>
+
+<h1 id="conclusion">Conclusion</h1>
+
+<p>This is a simple idea with many applications. For example i have used it to extract the mutation spectrum in primates [1], more recently to study patterns of cross-mapping in metagenomics [2]. It occurs me that it could be useful to apply to VCF files given their binary nature.</p>
+
+<p>[1] https://doi.org/10.1093/gbe/evad019</p>
+
+<p>[2] https://insaflu.insa.pt/</p>]]></content><author><name>SantosJGND</name><email>dourado.jns@gmail.com</email></author><category term="bioinformatics" /><category term="matrix-multiplication" /><category term="hash-tables" /><category term="counting" /><summary type="html"><![CDATA[A common problem in bioinformatics is to count the number of times a sequence appears in a genome. For example, you might want to know how many times the sequence ATG appears in the genome of a given organism. This is a simple problem, but it can be computationally expensive. The genome of a bacteria can be millions of base pairs long, and the sequence you are looking for can be of any length. So how do you solve this problem efficiently?]]></summary></entry><entry><title type="html">Deepcopy - Locks</title><link href="http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy.html" rel="alternate" type="text/html" title="Deepcopy - Locks" /><published>2023-06-17T11:23:29+01:00</published><updated>2023-06-17T11:23:29+01:00</updated><id>http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy</id><content type="html" xml:base="http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy.html"><![CDATA[<p>Writting this post about a recent problem i had with deepcopy, and how i solved it.</p>
 
 <p>NOTE: this post addresses an issue with the <code class="language-plaintext highlighter-rouge">logging</code> python package that was solved in version <code class="language-plaintext highlighter-rouge">3.7</code>, so if you do not find yourself under a similar constraint, it won’t have practical value.</p>
 
