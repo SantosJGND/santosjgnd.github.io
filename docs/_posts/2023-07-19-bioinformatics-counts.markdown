@@ -11,7 +11,7 @@ A common problem in bioinformatics is to count the number of times a sequence ap
 
 Lets begin by how we record profiles - think of a record of the presence / absence of set of patterns in a given sequence. For example, for the sorted set `[A, T, C, G]`, we can represent the letter pattern `A` as `[1, 0, 0, 0]`, the letter pattern `T` as `[0, 1, 0, 0]`, and so on. We can then represent the sequence `ATG` as `[[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1]]`.
 
-You may be tempted to use generate these profiles using membership tests, as follows:
+You may be tempted to generate these profiles using membership tests, as follows:
 
 {% highlight python %}
 
@@ -43,7 +43,7 @@ def count_patterns(pattern, sorted_set):
 
 {% endhighlight %}
 
-This is more efficient. The `get` method of dictionaries has a time complexity of `O(1)`, so this will be faster than the membership test. The difference is not noticeable for small sequences, but it becomes noticeable for large sequences. Counting occurrences could be with little modifications. 
+This is more efficient. The `get` method of dictionaries has a time complexity of `O(1)`, so this will be faster than the membership test. The difference is not noticeable for small sequences, but it becomes noticeable for large sequences. Counting could be done with small modifications. 
 
 
 ### Counting shared occurrences
@@ -91,8 +91,9 @@ product = profiles @ profiles.T
 
 {% endhighlight %}
 
-This is much more efficient. The time complexity of matrix multiplication is `O(n^3)`, so this is much faster than the naive approach.
+The time complexity of matrix multiplication is `O(n^2.373)`, relative to simple count: `O(nk)`.
 
+This is more efficient for unbalanced datasets. This is common in biological datasets where the number of features (e.g. markers) is generally much larger than the number of samples.
 
 ### very large matrices
 
@@ -120,7 +121,8 @@ for chunk in chunk_matrix(profiles, 2):
 
 # Conclusion
 
-This is a simple idea with many applications. For example i have used it to extract the mutation spectrum in primates [1], more recently to study patterns of cross-mapping in metagenomics [2]. It occurs me that it could be useful to apply to VCF files given their binary nature. 
+This is a simple idea with many applications. I have used it to extract the mutation spectrum in primates [1], more recently to study patterns of cross-mapping in metagenomics [2]. It could be useful to apply to VCF files to study patterns of variation in populations.
+
 
 [1] https://doi.org/10.1093/gbe/evad019
 
