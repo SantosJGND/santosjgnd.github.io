@@ -46,83 +46,92 @@ def count_patterns(pattern, sorted_set):
 This is more efficient. The `get` method of dictionaries has a time complexity of `O(1)`, so this will be faster than the membership test. The difference is not noticeable for small sequences, but it becomes noticeable for large sequences. Counting occurrences could be with little modifications. 
 
 
-### Counting occurrences
+### Counting shared occurrences
 
-This is a more difficult problem. The naive approach is to loop through the sequence, and for every position in the sequence, check if the pattern appears in that position. This is not efficient. For a sequence of length `n`, and a pattern of length `k`, this has a time complexity of `O(nk)`.
+The naive approach is to loop through the sequence, and for every position in the sequence, check if the pattern appears in another. This is not efficient. For a sequence of length `n`, and a pattern of length `k`, this has a time complexity of `O(nk)`.
 
-A more efficient approach is to use matrix multiplication. This is a technique that is used in many areas of bioinformatics, and it is worth learning.
-
-Lets begin by representing the sequence as a matrix. For example, the sequence `ATG` can be represented as:
-
-{% highlight python %}
-sequence = [
-    [1, 0, 0, 0],
-    [0, 1, 0, 0],
-    [0, 0, 0, 1]
-]
-{% endhighlight %}
-
-and the identity matrix of our reference set of letters can be represented as:
+Lets try to solve this problem using matrix multiplication. Let's say we have constructed a list of profiles, 
 
 {% highlight python %}
 
-pattern = [
-    [1, 0, 0, 0],
-    [0, 1, 0, 0],
-    [0, 0, 1, 0],
-    [0, 0, 0, 1]
+profiles = [
+    [1, 0, 1, 1],
+    [0, 1, 1, 0],
+    [0, 1, 0, 1]
 ]
 
 {% endhighlight %}
 
-
-to establish the number of occurences of each letter in our sequence we can multiply the sequence matrix by the identity matrix. This is equivalent to counting the number of times each letter appears in the sequence. For example, the product of the two matrices above is:
+And we wish to create a matrix of shared occurrences. We can do this by multiplying the transpose of the profiles with the profiles themselves, with the resulting product:
 
 {% highlight python %}
 
-product = np.array(
-    [
-    [1, 0, 0, 0],
-    [0, 1, 0, 0],
-    [0, 0, 0, 1]
+product= [
+    [3, 1, 1],
+    [1, 2, 1],
+    [1, 1, 2]
 ]
-)
 
 {% endhighlight %}
 
-The first row of the product matrix tells us that the pattern appears once in the first position of the sequence. The second row tells us that the pattern appears once in the second position of the sequence. The third row tells us that the pattern does not appear in the third position of the sequence.
+where the diagonal will represent the sum of patterns in each profile, and the off-diagonal elements will represent the number of shared occurrences between profiles.
 
-We get the counts by simply summing the rows of the product matrix:
-
-{% highlight python %}
-
-counts = np.sum(product, axis=0)
-
-{% endhighlight %}
-
-This has the added advantage that matrix multiplication is very easy to perform in python using the numpy package. For the case above, the product mattrix would be calculated as follows:
+this is easy in python using the numpy package:
 
 {% highlight python %}
-import numpy as np
 
-sequence = np.array([
-    [1, 0, 0, 0],
-    [0, 1, 0, 0],
-    [0, 0, 0, 1]
+profiles= np.array([
+    [1, 0, 1, 1],
+    [0, 1, 1, 0],
+    [0, 1, 0, 1]
 ])
 
 
-pattern = np.array([
-    [1, 0, 0, 0],
-    [0, 1, 0, 0],
-    [0, 0, 1, 0],
-    [0, 0, 0, 1]
-])
-
-product = sequence @ pattern.T
+product = profiles @ profiles.T
 
 {% endhighlight %}
 
-It is also an example of how knowledge from different areas can be combined to solve a problem. In this case, the idea for using matrix multiplication came to me because i was studying coalescent theory, which relies heavily on markov chains, and markov chains can be represented as matrices. 
+This is much more efficient. The time complexity of matrix multiplication is `O(n^3)`, so this is much faster than the naive approach.
 
-I first came across this technique in the book [Bioinformatics Algorithms](https://www.bioinformaticsalgorithms.org/), by Phillip Compeau and Pavel Pevzner.
+
+### very large matrices
+
+While matrix multiplication is efficient, it is not practical to keep entire matrices in memory. The solution is to split these operations into chunks, e.g.:
+
+{% highlight python %}
+
+
+def chunk_matrix(matrix, chunk_size):
+
+    for i in range(0, matrix.shape[0], chunk_size):
+        yield matrix[i:i+chunk_size, :]
+
+
+for chunk in chunk_matrix(profiles, 2):
+
+    subset_product= chunk @ profiles.T
+
+    ## do something with subset_product
+
+{% endhighlight %}
+    
+    
+
+{% endhighlight %}
+
+            
+{% endhighlight %}
+
+
+
+
+# Conclusion
+
+This is a simple idea with many applications. For example i have used it to extract the mutation spectrum in primates [1], more recently to study patterns of cross-mapping in metagenomics [2]. It occurs me that it could be useful to apply to VCF files given their binary nature. 
+
+[1] https://doi.org/10.1093/gbe/evad019
+
+[2] https://insaflu.insa.pt/
+
+
+
