@@ -1,5 +1,98 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2023-06-17T14:51:23+01:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Research Log</title><subtitle>A technical account of my research path where I expose the problems I faced and how I solved them, with some detours into interesting tangents along the way.
-</subtitle><author><name>SantosJGND</name><email>dourado.jns@gmail.com</email></author><entry><title type="html">Deepcopy - Locks</title><link href="http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy.html" rel="alternate" type="text/html" title="Deepcopy - Locks" /><published>2023-06-17T11:23:29+01:00</published><updated>2023-06-17T11:23:29+01:00</updated><id>http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy</id><content type="html" xml:base="http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy.html"><![CDATA[<p>Writting this post about a recent problem i had with deepcopy, and how i solved it.</p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2023-07-19T12:41:54+01:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Research Log</title><subtitle>A technical account of my research path where I expose the problems I faced and how I solved them, with some detours into interesting tangents along the way.
+</subtitle><author><name>SantosJGND</name><email>dourado.jns@gmail.com</email></author><entry><title type="html">Bionformatics, Matrix Multiplication and Hash Tables</title><link href="http://localhost:4000/bioinformatics/matrix-multiplication/hash-tables/counting/2023/07/19/bioinformatics-counts.html" rel="alternate" type="text/html" title="Bionformatics, Matrix Multiplication and Hash Tables" /><published>2023-07-19T00:34:26+01:00</published><updated>2023-07-19T00:34:26+01:00</updated><id>http://localhost:4000/bioinformatics/matrix-multiplication/hash-tables/counting/2023/07/19/bioinformatics-counts</id><content type="html" xml:base="http://localhost:4000/bioinformatics/matrix-multiplication/hash-tables/counting/2023/07/19/bioinformatics-counts.html"><![CDATA[<p>A common problem in bioinformatics is to count the number of times a sequence appears in a genome. For example, you might want to know how many times the sequence <code class="language-plaintext highlighter-rouge">ATG</code> appears in the genome of a given organism. This is a simple problem, but it can be computationally expensive. The genome of a bacteria can be millions of base pairs long, and the sequence you are looking for can be of any length. So how do you solve this problem efficiently?</p>
+
+<h3 id="constructing-profiles">Constructing profiles</h3>
+
+<p>Lets begin by how we record profiles - think of a record of the presence / absence of set of patterns in a given sequence. For example, for the sorted set <code class="language-plaintext highlighter-rouge">[A, T, C, G]</code>, we can represent the letter pattern <code class="language-plaintext highlighter-rouge">A</code> as <code class="language-plaintext highlighter-rouge">[1, 0, 0, 0]</code>, the letter pattern <code class="language-plaintext highlighter-rouge">T</code> as <code class="language-plaintext highlighter-rouge">[0, 1, 0, 0]</code>, and so on. We can then represent the sequence <code class="language-plaintext highlighter-rouge">ATG</code> as <code class="language-plaintext highlighter-rouge">[[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1]]</code>.</p>
+
+<p>You may be tempted to use generate these profiles using membership tests, as follows:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">pattern</span><span class="o">=</span> <span class="p">[</span><span class="s">"A"</span><span class="p">]</span>
+<span class="n">sorted_set</span> <span class="o">=</span> <span class="p">[</span><span class="s">"A"</span><span class="p">,</span> <span class="s">"T"</span><span class="p">,</span> <span class="s">"C"</span><span class="p">,</span> <span class="s">"G"</span><span class="p">]</span>
+
+<span class="k">def</span> <span class="nf">count_patterns</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">sorted_set</span><span class="p">):</span>
+    
+    <span class="k">return</span> <span class="p">[</span><span class="mi">1</span> <span class="k">if</span> <span class="n">letter</span> <span class="ow">in</span> <span class="n">pattern</span> <span class="k">else</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">letter</span> <span class="ow">in</span> <span class="n">sorted_set</span><span class="p">]</span>
+    </code></pre></figure>
+
+<p>But this is not efficient. The <code class="language-plaintext highlighter-rouge">in</code> operator will loop through the entire sequence, and for every element in the sequence it will loop through the entire pattern.</p>
+
+<p>Alternatively, we can use hash-tables (dictionaries in python):</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">pattern</span><span class="o">=</span> <span class="p">{</span><span class="s">"A"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+<span class="n">sorted_set</span> <span class="o">=</span> <span class="p">[</span><span class="s">"A"</span><span class="p">,</span> <span class="s">"T"</span><span class="p">,</span> <span class="s">"C"</span><span class="p">,</span> <span class="s">"G"</span><span class="p">]</span>
+
+<span class="k">def</span> <span class="nf">count_patterns</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">sorted_set</span><span class="p">):</span>
+    
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">pattern</span><span class="p">.</span><span class="nf">get</span><span class="p">(</span><span class="n">letter</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">letter</span> <span class="ow">in</span> <span class="n">sorted_set</span>
+    <span class="p">]</span>
+    </code></pre></figure>
+
+<p>This is more efficient. The <code class="language-plaintext highlighter-rouge">get</code> method of dictionaries has a time complexity of <code class="language-plaintext highlighter-rouge">O(1)</code>, so this will be faster than the membership test. The difference is not noticeable for small sequences, but it becomes noticeable for large sequences. Counting occurrences could be with little modifications.</p>
+
+<h3 id="counting-occurrences">Counting occurrences</h3>
+
+<p>This is a more difficult problem. The naive approach is to loop through the sequence, and for every position in the sequence, check if the pattern appears in that position. This is not efficient. For a sequence of length <code class="language-plaintext highlighter-rouge">n</code>, and a pattern of length <code class="language-plaintext highlighter-rouge">k</code>, this has a time complexity of <code class="language-plaintext highlighter-rouge">O(nk)</code>.</p>
+
+<p>A more efficient approach is to use matrix multiplication. This is a technique that is used in many areas of bioinformatics, and it is worth learning.</p>
+
+<p>Lets begin by representing the sequence as a matrix. For example, the sequence <code class="language-plaintext highlighter-rouge">ATG</code> can be represented as:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">sequence</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+<span class="p">]</span></code></pre></figure>
+
+<p>and the identity matrix of our reference set of letters can be represented as:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">pattern</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+<span class="p">]</span></code></pre></figure>
+
+<p>to establish the number of occurences of each letter in our sequence we can multiply the sequence matrix by the identity matrix. This is equivalent to counting the number of times each letter appears in the sequence. For example, the product of the two matrices above is:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">product</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">(</span>
+    <span class="p">[</span>
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+<span class="p">]</span>
+<span class="p">)</span></code></pre></figure>
+
+<p>The first row of the product matrix tells us that the pattern appears once in the first position of the sequence. The second row tells us that the pattern appears once in the second position of the sequence. The third row tells us that the pattern does not appear in the third position of the sequence.</p>
+
+<p>We get the counts by simply summing the rows of the product matrix:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">sum</span><span class="p">(</span><span class="n">product</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></code></pre></figure>
+
+<p>This has the added advantage that matrix multiplication is very easy to perform in python using the numpy package. For the case above, the product mattrix would be calculated as follows:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="n">numpy</span> <span class="k">as</span> <span class="n">np</span>
+
+<span class="n">sequence</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span>
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+<span class="p">])</span>
+
+
+<span class="n">pattern</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span>
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+<span class="p">])</span>
+
+<span class="n">product</span> <span class="o">=</span> <span class="n">sequence</span> <span class="o">@</span> <span class="n">pattern</span><span class="p">.</span><span class="n">T</span></code></pre></figure>
+
+<p>It is also an example of how knowledge from different areas can be combined to solve a problem. In this case, the idea for using matrix multiplication came to me because i was studying coalescent theory, which relies heavily on markov chains, and markov chains can be represented as matrices.</p>
+
+<p>I first came across this technique in the book <a href="https://www.bioinformaticsalgorithms.org/">Bioinformatics Algorithms</a>, by Phillip Compeau and Pavel Pevzner.</p>]]></content><author><name>SantosJGND</name><email>dourado.jns@gmail.com</email></author><category term="bioinformatics" /><category term="matrix-multiplication" /><category term="hash-tables" /><category term="counting" /><summary type="html"><![CDATA[A common problem in bioinformatics is to count the number of times a sequence appears in a genome. For example, you might want to know how many times the sequence ATG appears in the genome of a given organism. This is a simple problem, but it can be computationally expensive. The genome of a bacteria can be millions of base pairs long, and the sequence you are looking for can be of any length. So how do you solve this problem efficiently?]]></summary></entry><entry><title type="html">Deepcopy - Locks</title><link href="http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy.html" rel="alternate" type="text/html" title="Deepcopy - Locks" /><published>2023-06-17T11:23:29+01:00</published><updated>2023-06-17T11:23:29+01:00</updated><id>http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy</id><content type="html" xml:base="http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy.html"><![CDATA[<p>Writting this post about a recent problem i had with deepcopy, and how i solved it.</p>
 
 <p>NOTE: this post addresses an issue with the <code class="language-plaintext highlighter-rouge">logging</code> python package that was solved in version <code class="language-plaintext highlighter-rouge">3.7</code>, so if you do not find yourself under a similar constraint, it won’t have practical value.</p>
 
