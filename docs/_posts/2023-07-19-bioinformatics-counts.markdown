@@ -124,9 +124,9 @@ for chunk in chunk_matrix(profiles, 2):
 This is a simple idea with many applications. I have used it to extract the mutation spectrum in primates [1], more recently to study patterns of cross-mapping in metagenomics [2]. It could be useful to apply to VCF files to study patterns of variation in populations.
 
 
-[1] https://doi.org/10.1093/gbe/evad019
+[1] [https://doi.org/10.1093/gbe/evad019](https://doi.org/10.1093/gbe/evad019)
 
-[2] https://insaflu.insa.pt/
+[2] [https://insaflu.insa.pt/](https://insaflu.insa.pt/)
 
 
 

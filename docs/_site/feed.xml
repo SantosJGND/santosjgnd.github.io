@@ -1,11 +1,11 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2023-07-19T15:04:53+01:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Research Log</title><subtitle>A technical account of my research path where I expose the problems I faced and how I solved them, with some detours into interesting tangents along the way.
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2023-07-19T18:41:38+01:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Research Log</title><subtitle>A technical account of my research path where I expose the problems I faced and how I solved them, with some detours into interesting tangents along the way.
 </subtitle><author><name>SantosJGND</name><email>dourado.jns@gmail.com</email></author><entry><title type="html">Bionformatics, Matrix Multiplication and Hash Tables</title><link href="http://localhost:4000/bioinformatics/matrix-multiplication/hash-tables/counting/2023/07/19/bioinformatics-counts.html" rel="alternate" type="text/html" title="Bionformatics, Matrix Multiplication and Hash Tables" /><published>2023-07-19T00:34:26+01:00</published><updated>2023-07-19T00:34:26+01:00</updated><id>http://localhost:4000/bioinformatics/matrix-multiplication/hash-tables/counting/2023/07/19/bioinformatics-counts</id><content type="html" xml:base="http://localhost:4000/bioinformatics/matrix-multiplication/hash-tables/counting/2023/07/19/bioinformatics-counts.html"><![CDATA[<p>A common problem in bioinformatics is to count the number of times a sequence appears in a genome. For example, you might want to know how many times the sequence <code class="language-plaintext highlighter-rouge">ATG</code> appears in the genome of a given organism. This is a simple problem, but it can be computationally expensive. The genome of a bacteria can be millions of base pairs long, and the sequence you are looking for can be of any length. So how do you solve this problem efficiently?</p>
 
 <h3 id="constructing-profiles">Constructing profiles</h3>
 
 <p>Lets begin by how we record profiles - think of a record of the presence / absence of set of patterns in a given sequence. For example, for the sorted set <code class="language-plaintext highlighter-rouge">[A, T, C, G]</code>, we can represent the letter pattern <code class="language-plaintext highlighter-rouge">A</code> as <code class="language-plaintext highlighter-rouge">[1, 0, 0, 0]</code>, the letter pattern <code class="language-plaintext highlighter-rouge">T</code> as <code class="language-plaintext highlighter-rouge">[0, 1, 0, 0]</code>, and so on. We can then represent the sequence <code class="language-plaintext highlighter-rouge">ATG</code> as <code class="language-plaintext highlighter-rouge">[[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1]]</code>.</p>
 
-<p>You may be tempted to use generate these profiles using membership tests, as follows:</p>
+<p>You may be tempted to generate these profiles using membership tests, as follows:</p>
 
 <figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">pattern</span><span class="o">=</span> <span class="p">[</span><span class="s">"A"</span><span class="p">]</span>
 <span class="n">sorted_set</span> <span class="o">=</span> <span class="p">[</span><span class="s">"A"</span><span class="p">,</span> <span class="s">"T"</span><span class="p">,</span> <span class="s">"C"</span><span class="p">,</span> <span class="s">"G"</span><span class="p">]</span>
@@ -29,7 +29,7 @@
     <span class="p">]</span>
     </code></pre></figure>
 
-<p>This is more efficient. The <code class="language-plaintext highlighter-rouge">get</code> method of dictionaries has a time complexity of <code class="language-plaintext highlighter-rouge">O(1)</code>, so this will be faster than the membership test. The difference is not noticeable for small sequences, but it becomes noticeable for large sequences. Counting occurrences could be with little modifications.</p>
+<p>This is more efficient. The <code class="language-plaintext highlighter-rouge">get</code> method of dictionaries has a time complexity of <code class="language-plaintext highlighter-rouge">O(1)</code>, so this will be faster than the membership test. The difference is not noticeable for small sequences, but it becomes noticeable for large sequences. Counting could be done with small modifications.</p>
 
 <h3 id="counting-shared-occurrences">Counting shared occurrences</h3>
 
@@ -64,7 +64,9 @@
 
 <span class="n">product</span> <span class="o">=</span> <span class="n">profiles</span> <span class="o">@</span> <span class="n">profiles</span><span class="p">.</span><span class="n">T</span></code></pre></figure>
 
-<p>This is much more efficient. The time complexity of matrix multiplication is <code class="language-plaintext highlighter-rouge">O(n^3)</code>, so this is much faster than the naive approach.</p>
+<p>The time complexity of matrix multiplication is <code class="language-plaintext highlighter-rouge">O(n^2.373)</code>, relative to simple count: <code class="language-plaintext highlighter-rouge">O(nk)</code>.</p>
+
+<p>This is more efficient for unbalanced datasets. This is common in biological datasets where the number of features (e.g. markers) is generally much larger than the number of samples.</p>
 
 <h3 id="very-large-matrices">very large matrices</h3>
 
@@ -84,11 +86,11 @@
 
 <h1 id="conclusion">Conclusion</h1>
 
-<p>This is a simple idea with many applications. For example i have used it to extract the mutation spectrum in primates [1], more recently to study patterns of cross-mapping in metagenomics [2]. It occurs me that it could be useful to apply to VCF files given their binary nature.</p>
+<p>This is a simple idea with many applications. I have used it to extract the mutation spectrum in primates [1], more recently to study patterns of cross-mapping in metagenomics [2]. It could be useful to apply to VCF files to study patterns of variation in populations.</p>
 
-<p>[1] https://doi.org/10.1093/gbe/evad019</p>
+<p>[1] <a href="https://doi.org/10.1093/gbe/evad019">https://doi.org/10.1093/gbe/evad019</a></p>
 
-<p>[2] https://insaflu.insa.pt/</p>]]></content><author><name>SantosJGND</name><email>dourado.jns@gmail.com</email></author><category term="bioinformatics" /><category term="matrix-multiplication" /><category term="hash-tables" /><category term="counting" /><summary type="html"><![CDATA[A common problem in bioinformatics is to count the number of times a sequence appears in a genome. For example, you might want to know how many times the sequence ATG appears in the genome of a given organism. This is a simple problem, but it can be computationally expensive. The genome of a bacteria can be millions of base pairs long, and the sequence you are looking for can be of any length. So how do you solve this problem efficiently?]]></summary></entry><entry><title type="html">Deepcopy - Locks</title><link href="http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy.html" rel="alternate" type="text/html" title="Deepcopy - Locks" /><published>2023-06-17T11:23:29+01:00</published><updated>2023-06-17T11:23:29+01:00</updated><id>http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy</id><content type="html" xml:base="http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy.html"><![CDATA[<p>Writting this post about a recent problem i had with deepcopy, and how i solved it.</p>
+<p>[2] <a href="https://insaflu.insa.pt/">https://insaflu.insa.pt/</a></p>]]></content><author><name>SantosJGND</name><email>dourado.jns@gmail.com</email></author><category term="bioinformatics" /><category term="matrix-multiplication" /><category term="hash-tables" /><category term="counting" /><summary type="html"><![CDATA[A common problem in bioinformatics is to count the number of times a sequence appears in a genome. For example, you might want to know how many times the sequence ATG appears in the genome of a given organism. This is a simple problem, but it can be computationally expensive. The genome of a bacteria can be millions of base pairs long, and the sequence you are looking for can be of any length. So how do you solve this problem efficiently?]]></summary></entry><entry><title type="html">Deepcopy - Locks</title><link href="http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy.html" rel="alternate" type="text/html" title="Deepcopy - Locks" /><published>2023-06-17T11:23:29+01:00</published><updated>2023-06-17T11:23:29+01:00</updated><id>http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy</id><content type="html" xml:base="http://localhost:4000/python/development/deepcopy/2023/06/17/deepcopy.html"><![CDATA[<p>Writting this post about a recent problem i had with deepcopy, and how i solved it.</p>
 
 <p>NOTE: this post addresses an issue with the <code class="language-plaintext highlighter-rouge">logging</code> python package that was solved in version <code class="language-plaintext highlighter-rouge">3.7</code>, so if you do not find yourself under a similar constraint, it won’t have practical value.</p>
 
