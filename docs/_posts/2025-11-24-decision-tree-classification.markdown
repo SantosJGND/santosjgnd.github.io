@@ -53,12 +53,12 @@ Could easily be implemented for left-right decisions in binary trees.
 Design of basic crawler, where node stats were pre-computed and model and scaler are stored in a CompositionModeller class.
 
 ```python
-def traversal_with_prediction(overlap_manager: OverlapManager, node: str, modeller: CompositionModeller, m_stats_stats_matrix, tax_df: pd.DataFrame, tax_level: str = "order", results = []) -> List[pd.DataFrame]:
+def traversal_with_prediction(overlap_manager: OverlapManager, node: str, modeller: CompositionModeller, m_stats_stats_matrix, results = []) -> List[pd.DataFrame]:
     """
     Recursive function.
     Traverse the tree, internal nodes only. At each node:
     - compute node precision.
-    - compute node composition at tax_level
+    - compute node composition
     - use model to predict if split increases precision.
     - store results.
     if model predicts precision is increased by splitting, traverse (internal nodes only) children. else stop.
@@ -88,9 +88,8 @@ def traversal_with_prediction(overlap_manager: OverlapManager, node: str, modell
             'node': node,
             'n_leaves': len(node_leaves),
             'leaves': node_leaves,
-            'best_taxid_match': best_taxid_match,
             'node_precision': node_precision,
-            'node_taxids': node_leaf_taxids,
+
         })
 
     # Traverse children if prediction is positive
