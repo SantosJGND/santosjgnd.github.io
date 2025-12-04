@@ -38,9 +38,13 @@ This has become a binary classification problem with a set of features:
 
 ### Proposed Workflow
 
-Workflow: - Generate trees for all data sets. - from each tree, extract all nodes and calculate features.
+First, generate trees for all data sets. - from each tree, extract all nodes and calculate features.
 
-Training Data set, traverse tree from root to leaves, recursively: - for each node, calculate features - calculate precision of current antichain (set of nodes covering all leaves with no overlaps) - calculate precision of antichain where current node is replaced by its children - if precision improves, label node as 1 (split), else 0 (do not split) - store features and label - continue recursively for children nodes - at leaves, stop
+Training Data set:
+
+- traverse tree from root to leaves, recursively:
+- for each node, calculate features and extract metadata, then calculate precision among descendants before and after split - assuming binary split: divide the number of direct descendants by the number of classes among leaves.
+- if splitting deacreases precision, we stop, otherwise we continue recursively for non-terminal children nodes.
 
 On test data sets, traverse tree from root to leaves, recursively: - for each node, calculate features - use trained classifier to predict whether to split or not - if split, continue recursively for children nodes - if not split, add node to final antichain - at leaves, stop
 
@@ -50,7 +54,7 @@ The interesting thing here for me is the design of the application. The decision
 
 Could easily be implemented for left-right decisions in binary trees.
 
-Design of basic crawler, where node stats were pre-computed and model and scaler are stored in a CompositionModeller class.
+Design of basic a crawler, where node stats were pre-computed and model and scaler are stored in a CompositionModeller class.
 
 ```python
 def traversal_with_prediction(overlap_manager: OverlapManager, node: str, modeller: CompositionModeller, m_stats_stats_matrix, results = []) -> List[pd.DataFrame]:
