@@ -13,10 +13,11 @@ description: >
   them, with some detours into interesting tangents along the
   way.
 
+url: "https://santosjgnd.github.io"
 #baseurl: "https://santosjgnd.com"
 
 #Google Analytics
-google_analytics: UA-000000000-1
+# google_analytics: UA-000000000-1
 
 # Build settings
 

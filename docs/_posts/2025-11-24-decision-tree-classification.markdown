@@ -29,7 +29,7 @@ This problem should be resolved recursively: Calculating all possible combinatio
 
 - how does one relate node-specific features (composition and metrics) to an overall estimate of precision? for every possible node, in every possible antichain?
 
-**Solution** : we don't. not exactly. We can however know whether a splitting a node will improve or worsen precision.
+**Solution** : we don't. not exactly. We can however know whether splitting a node will improve or worsen precision.
 
 This has become a binary classification problem with a set of features:
 
@@ -44,13 +44,13 @@ Training Data set:
 
 - traverse tree from root to leaves, recursively:
 - for each node, calculate features and extract metadata, then calculate precision among descendants before and after split - assuming binary split: divide the number of direct descendants by the number of classes among leaves.
-- if splitting deacreases precision, we stop, otherwise we continue recursively for non-terminal children nodes.
+- if splitting decreases precision, we stop, otherwise we continue recursively for non-terminal children nodes.
 
 On test data sets, traverse tree from root to leaves, recursively: - for each node, calculate features - use trained classifier to predict whether to split or not - if split, continue recursively for children nodes - if not split, add node to final antichain - at leaves, stop
 
 ### Comments
 
-The interesting thing here for me is the design of the application. The decision tree classifier is relatively straightforward, and can be implemented using any standard machine learning library (e.g. scikit-learn). But then the model (and any scaler implemented) needs to be handed to the tree traversal functions that will make decisions at each node. Like little spiders crawling the tree decinding where to cut.
+The interesting thing here for me is the design of the application. The decision tree classifier is relatively straightforward, and can be implemented using any standard machine learning library (e.g. scikit-learn). But then the model (and any scaler implemented) needs to be handed to the tree traversal functions that will make decisions at each node. Like little spiders crawling the tree deciding where to cut.
 
 Could easily be implemented for left-right decisions in binary trees.
 
@@ -115,3 +115,15 @@ def traversal_with_prediction(overlap_manager: OverlapManager, node: str, modell
 
     return results
 ```
+
+---
+
+### Follow-ups
+
+Two related posts:
+
+- **[Why your classifier is better than your recall metric says]({% post_url 2026-09-07-why-your-classifier-beats-your-recall-metric %})**
+  — on measuring what the classifier found, rather than what the whole pipeline recovered, and the funnel we
+  built to explain the difference.
+- **[Deciding when to stop splitting a tree]({% post_url 2026-09-28-deciding-when-to-stop-splitting-a-tree %})**
+  — on the stopping rule that ended up in production, and the `>=` versus `>` comparison at its heart.

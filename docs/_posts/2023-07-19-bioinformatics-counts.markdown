@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Bionformatics, Matrix Multiplication and Hash Tables"
+title: "Bioinformatics, Matrix Multiplication and Hash Tables"
 date: 2023-07-18 23:34:26 +0000
 categories: bioinformatics matrix-multiplication hash-tables counting
 ---
