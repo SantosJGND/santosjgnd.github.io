@@ -5,26 +5,26 @@ date: 2026-09-07 01:01:16 +0100
 categories: python debugging bioinformatics
 ---
 
-Our changelog says we fixed lineage scoring to be symmetric. The function that does the fix is correct. The
-function the pipeline actually calls is not. This post is about that gap, and about how a test on the
-"right" function let the wrong one through.
+Our changelog says we fixed lineage scoring to be symmetric. When I went back to check that entry I found that the fix is in a function the pipeline does not call in the common case. This post is
+about how that happened, and how a test on the right function let the wrong one through.
 
-### The asymmetric score
+### The problem with the old score
 
-A lineage score asks: how much of taxon A's lineage matches taxon B's lineage, starting from the root? The
-original code divided the shared prefix by the length of the first lineage only. So a leaf with extra
-sub-species ranks scored badly against its own species. With our threshold `min_taxonomic_score=0.7`, that
-was enough to drop correct matches.
+When we match a reference taxon to a leaf, we compare their lineages from the root down. The old score divided
+the shared prefix by the length of the first lineage only. That means the score depended on which taxon was
+passed first. A leaf with extra sub-species ranks scored badly against its own species, and with our threshold
+of `min_taxonomic_score=0.7`, correct matches were being dropped.
 
-The changelog entry (`CHANGELOG.md:55`) says the score became:
+The fix was to divide by the shorter of the two lineages instead:
 
 ```
 shared_prefix / min(len(lineage1), len(lineage2))
 ```
 
-### The symmetric function
+### The function I fixed
 
-`compare_lineages()` in `metagenomics_utils/ncbi_tools.py:318-341` does this:
+The symmetric version lives in `compare_lineages()` in `metagenomics_utils/ncbi_tools.py`. It splits both
+lineages, takes the shorter length, and counts matching ranks until the first mismatch:
 
 ```python
 levels1 = lineage1.split("; ")
@@ -40,20 +40,16 @@ for i in range(min_length):
 return score / min_length, level
 ```
 
-It has a unit test in `tests/deployment/model_evaluation/test_recall_fixes.py:26-56`. The test passes.
+There is a test file for it, `tests/deployment/model_evaluation/test_recall_fixes.py`, and the test passes.
+I was pleased with that at the time.
 
-### The function the pipeline calls
+### The function that actually runs
 
-The matching code in `node_stats.py` does not call `compare_lineages()`. It calls
-`NCBITaxonomistWrapper.compare_lineages_relative()` (`ncbi_tools.py:248-270`). That function only falls back
-to the symmetric version in one case:
+The matching code in `node_stats.py` never calls `compare_lineages()` directly. It calls
+`compare_lineages_relative()` on the wrapper class. Reading it again, I found that it only uses the symmetric
+version in one case, when one of the taxa has a rank of level zero:
 
 ```python
-min_levels = min(
-    min([x["level"] for x in self.lineages[taxid1].values()]),
-    min([x["level"] for x in self.lineages[taxid2].values()]),
-)
-
 if min_levels == 0:
     ...  # symmetric compare_lineages(), as above
     return tax, level
@@ -65,27 +61,26 @@ for tax, level in lineage1:
 return 1.0, lineage1[-1][0] if lineage1 else None
 ```
 
-In the common path, the score is still divided by `len(lineage1)`. The fix applies only when `min_levels == 0`.
-I have not measured how often that branch runs on real data, so I cannot say how much of the fix is active.
+For every other pair, the score is still divided by `len(lineage1)`. So the asymmetry I fixed in one function
+is still there in the path that matters.
 
-### Why the test did not catch it
+### Why the test missed it
 
-The test file only exercises `compare_lineages`. No test covers the asymmetric branch of
-`compare_lineages_relative`. The test that exists is correct for what it tests, so it passes while the
-production path still has the old formula.
+The test only calls `compare_lineages`. Nothing calls `compare_lineages_relative` with a leaf that has extra
+sub-species ranks, so the asymmetric branch is never exercised. The test is correct for what it checks. It just
+checks the wrong function.
 
-### What the numbers say
+### What the numbers do and do not show
 
-The changelog reports per-taxid assembly recall moving from 0.305 to 0.564, with 3,012 gains and 3 tie
-reassignments. The same entry lists other fixes (F3 to F5) in the same run. The changelog does not split
-out how much of that came from the symmetric score, so I do not attribute the gain to it.
+The changelog reports per-taxid assembly recall going from 0.305 to 0.564, with 3,012 gains. That entry also
+lists other fixes made in the same run, and it does not separate out how much of the gain came from the
+symmetric score. So I cannot say how much this change contributed, and I am not going to guess.
 
 ### What I would do next
 
-1. Add a test for `compare_lineages_relative` with a leaf that has extra sub-species ranks.
-2. Log how often `min_levels == 0` is true during a real run. If it is rare, the symmetric fix is mostly
-   inactive, and the fix should be applied to the main branch too.
-3. Run the recall analysis once with each variant and report the split.
+Add a test for `compare_lineages_relative` with a leaf that has extra ranks. Log how often the `min_levels == 0`
+branch runs on a real dataset. If it is rare, the symmetric fix is mostly inactive and should be applied to the
+main branch too. Then run the recall analysis once with each version, so we can see the difference on its own.
 
-This is the same recall investigation as [the recall metric post]({% post_url 2026-09-07-why-your-classifier-beats-your-recall-metric %}).
-The lineage score is one of the three bugs fixed there.
+This is the same investigation as [the recall metric post]({% post_url 2026-09-07-why-your-classifier-beats-your-recall-metric %}).
+The lineage score was one of the three bugs fixed there.

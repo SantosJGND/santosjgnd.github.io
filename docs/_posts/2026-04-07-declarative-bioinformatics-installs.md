@@ -5,14 +5,14 @@ date: 2026-04-07 15:36:53 +0100
 categories: python packaging bioinformatics
 ---
 
-TELEVIR needs dozens of reference databases, each with its own URL, filename, and version. Hard-coding those
-in Python means a code change for every new database. The project moved the description of each database into
-one file, `sources.yaml`, so that most additions need no code. This post shows the format, how the loader
-reads it, and where the "declarative" claim stops being true.
+TELEVIR needs dozens of reference databases, and each one has its own URL, filename and version. For a long time, the
+download code had those details hard-coded, which meant every new database was a code change. I wanted to move the
+description of each database into one file, so that most additions need no code at all. This post shows the format, how
+the loader reads it, and where the "no code needed" claim stops being true.
 
-### The format
+### An entry
 
-Each database is a named entry under a category. Here is a versioned entry, with the version in the URL:
+Each database is a named entry under a category. Here is one with a version in the URL, which is the common case:
 
 ```yaml
 rvdb:
@@ -25,64 +25,63 @@ rvdb:
   db_key: "prot"
 ```
 
-A RefSeq entry names a download method instead of a single URL:
+RefSeq is different, because the files are chosen by a pattern rather than a single URL, so the entry names a
+download method instead:
 
 ```yaml
 viral_genome:
   url: "https://ftp.ncbi.nlm.nih.gov/refseq/release/viral/"
   file_pattern: "viral.genome.fna.gz"
   install: true
-  install_types: ["nuc"]
-  db_key: "nuc"
   download_method: "refseq"
   refseq_organism: "viral"
   refseq_type: "genome"
 ```
 
-The keys the loader uses are `url`, `file`, `version` or `version_default`, `install`, `install_types`, and
-`db_key`. `install: false` disables an entry, and a missing `install` key counts as enabled.
+Setting `install: false` turns an entry off. If the key is missing, the entry is treated as enabled, which I did not
+expect when I first read it.
 
 ### The loader
 
-`SourceLoader` (`install_scripts/load_sources.py`) is a singleton. It finds `sources.yaml` at the repo root and
-parses it once. Accessors then answer questions about each entry: whether it is enabled, its file name, its
-version, its database key, and its download method. Version lookup falls back in order: the `version` field,
-then a version pulled out of the filename, then out of the URL.
+`SourceLoader` reads the file once and answers questions about each entry: whether it is enabled, its filename, its
+version, its database key, and how to download it. The version lookup has a fallback chain. It uses the `version`
+field if there is one, then tries to pull a version out of the filename, then out of the URL.
 
-The download plan is built by `list_all_db_configs`, which walks the categories and attaches the keys. The
-main install routine (`main_install.py`, `prep_dl`) then decides how each entry is fetched:
+The download plan is built by walking the categories and collecting the entries. The install routine then decides how
+each category is fetched:
 
 ```python
 download_categories = ["ribosomal_rna", "protein", "nucleotide", "refseq"]
 ```
 
-A RefSeq category goes to a RefSeq downloader. Every other category goes to a generic filter downloader that
-substitutes `{version}` in the URL and filename, then downloads and verifies the file.
+A RefSeq category goes to a RefSeq downloader. Every other category in that list goes to a generic downloader, which
+substitutes the version into the URL and filename, downloads the file and verifies it.
 
-### Adding a database without code
+### Adding a database without touching code
 
-- A new entry under `ribosomal_rna`, `protein`, or `nucleotide` is picked up automatically, provided it has a
-  `url`, a `file`, and a `db_key` or `install_types`.
-- A new RefSeq entry needs its `download_method`, `refseq_organism`, and `refseq_type`.
+If you add an entry under one of those four categories, with a URL, a filename and a database key, it is picked up
+automatically. A new RefSeq entry needs its download method and the organism and type fields. That part really is
+declarative, and it is the reason I wanted the file in the first place.
 
-That is the part that is declarative.
+### Where it is not declarative
 
-### Where it is not
+A new category needs code, because the install routine only fetches the four categories in its list. An entry under
+any other name is silently never downloaded. I found this by reading the loop, not from a failure, which is the worst
+kind of gap.
 
-- **A new category needs code.** `prep_dl` only downloads the four categories in its list. An entry under any
-  other name is silently never fetched.
-- **Software needs code.** Tools in `software` (archives, git repos, conda tools) are mapped to environment
-  keys by a dictionary in `install_source.py` (`software_mapping`). A new tool is a code edit.
-- **Kraken2, Centrifuge, and Kaiju have their own functions.** Their entries are iterated by name, but each one
-  calls hard-coded per-tool code. I did not verify that a new Kaiju entry works end to end.
-- **Some keys are never read.** `version_template` appears in the YAML, and no Python reads it.
-- **One path ignores the YAML.** The Centrifuge prebuilt registration hard-codes `/opt/data/prebuilt/`, and the
-  YAML-driven path lookup is commented out.
+Software is also not in the file. Tools listed under software are mapped to environment keys by a dictionary in the
+install code, so a new tool is a code edit. Kraken2, Centrifuge and Kaiju have entries in the file, but each still calls
+its own hard-coded function, and I have not checked that a new Kaiju entry works from start to finish.
 
-### What I would do
+There are also keys nothing reads. A `version_template` key sits in the file, and no Python code uses it. And one path
+ignores the file altogether: the Centrifuge prebuilt registration uses a fixed directory, and the lookup that would read
+the path from the file is commented out.
 
-Move the category list and the software mapping into the YAML too, so that the loader decides what to fetch
-from the file alone. Delete the keys nothing reads. Add a test that loads every entry and checks that its
-category is handled, so a silent skip becomes a failing test.
+### What I would do next
 
-The download side of this is covered in [the database download post]({% post_url 2026-03-20-downloading-databases-reliably %}).
+Move the category list and the software mapping into the file too, so the loader decides what to fetch from the file
+alone. Delete keys nothing reads. And add a test that loads every entry and checks that its category is handled, so a
+silent skip becomes a failing test.
+
+The download side of this, which is where the integrity checks and locking live, is in
+[the database download post]({% post_url 2026-03-20-downloading-databases-reliably %}).

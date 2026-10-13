@@ -1,53 +1,44 @@
 ---
 layout: post
-title: "Predicting where to stop: a recall cutoff model and a sign error in its loss"
+title: "Predicting where to stop: a recall cutoff model and a penalty written the wrong way round"
 date: 2026-08-31 11:54:21 +0100
 categories: python ml scikit-learn
 ---
 
-Once the pipeline ranks leaves, someone has to decide how many to keep. Keep too few and recall drops. Keep
-too many and the analysis gets slow and noisy. This post is about the model that predicts that cutoff, and
-about a penalty that is written in the opposite direction in two places.
+Once the pipeline has ranked the leaves, someone has to decide how many of them to keep. Keep too few and we lose
+recall. Keep too many and the analysis gets slow and noisy. I spent a while on a model that predicts this cutoff,
+and while reading its loss function I found a penalty that points in opposite directions in two places.
 
-### The target
+### What we are trying to predict
 
-For each dataset, the true cutoff is the first fraction of the sorted leaf list where recall reaches a
-threshold `tau`. `compute_ground_truth_division` (`metagenomics_utils/overlap_manager/om_models.py:249-261`)
-interpolates that fraction:
+For each dataset, the true cutoff is the first point in the sorted leaf list where recall reaches a threshold
+`tau`. `compute_ground_truth_division` in `om_models.py` finds that point by interpolating between the two
+fractions either side of the threshold:
 
 ```python
 def compute_ground_truth_division(recall_at_divs, tau, n_divisions, fractions):
     for i in range(n_divisions):
         if recall_at_divs[i] >= tau:
-            if i == 0:
-                return float(tau * fractions[0] / max(recall_at_divs[0], EPS))
-            r_low, r_high = recall_at_divs[i - 1], recall_at_divs[i]
-            f_low, f_high = fractions[i - 1], fractions[i]
-            if r_high == r_low:
-                return f_high
+            ...
             frac = f_low + (tau - r_low) * (f_high - f_low) / (r_high - r_low)
             return float(np.clip(frac, f_low, f_high))
     return 1.0
 ```
 
-If recall never reaches `tau`, the target is 1.0 (keep everything).
+If recall never reaches `tau`, the target is 1.0, meaning keep everything.
 
 ### The features
 
-The feature transformer (`feature_transformer.py`) builds one row per dataset from:
+The feature transformer builds one row per dataset. The inputs are the total and maximum unique read counts,
+the number of hits, the skewness and kurtosis of the counts, the Shannon diversity of taxa, and the proportion of
+reads in each taxon at a chosen level, which defaults to order. The targets are the recall reached within each
+fraction of the sorted list.
 
-- `total_uniq_reads`, `max_uniq_reads`, `number_hits`
-- `counts_kurtosis`, `counts_skewness`
-- `tax_diversity_shannon`
-- per-taxon composition proportions at a chosen level (default `order`)
+### The loss I got wrong, first
 
-The targets are `index_recall_1` through `index_recall_N`: the recall reached within each fraction of the
-sorted list.
-
-### Two models, one loss
-
-`DirectXGBRecallModeller` (`om_models.py:990-1084`) regresses the cutoff directly. Its sample weights make
-errors on small true fractions count more:
+The direct regression model weights its errors with a function that makes mistakes on small true fractions
+count more. Its docstring says it penalises underestimation three times more than overestimation, and the code
+passes `under_cost=3`, so that part matches:
 
 ```python
 def _asymmetric_weights(self, gt, over_cost=1.0, under_cost=3.0, floor=0.05):
@@ -55,47 +46,27 @@ def _asymmetric_weights(self, gt, over_cost=1.0, under_cost=3.0, floor=0.05):
     return base * under_cost + (1.0 - base / base.max()) * over_cost
 ```
 
-Its class docstring says it penalises underestimation 3:1. The code passes `under_cost=3`, so that matches.
+The grid search for the classifier model is different. It picks a probability threshold and a decision fraction
+by minimising a loss, and it calls that loss with `over_cost=3, under_cost=1`. The docstring for that code says
+the opposite: "Over-prediction (too late) penalised 3x heavier than under-prediction (too early), incentivising
+slightly conservative cutoffs that preserve recall."
 
-`GPCLFRecallModeller` (`om_models.py:1492`) picks a probability threshold and a decision fraction by grid
-search over a loss:
+Those two cannot both be right. I read the second one carefully. If predicting too late costs three times more,
+the optimiser will prefer lower predictions, which means earlier cutoffs. Earlier cutoffs keep less recall, not
+more. So the docstring's claim that it preserves recall does not follow from the code. I have not run an
+experiment to confirm this, so it is my reading, not a result.
 
-```python
-tau_values = np.linspace(0.10, 0.975, 36)
-X_values = np.linspace(0.025, 0.975, 39)
-...
-loss = asymmetric_loss(y_true_frac, y_pred, over_cost=3, under_cost=1)
-```
+The last-TP prediction script has the same penalty constants as the direct model, and a comment there that says
+the goal is to fight overestimation. Three places, two directions, and a comment that disagrees with its own
+numbers.
 
-Its docstring says: "Over-prediction (too late) penalised 3x heavier than under-prediction (too early),
-incentivising slightly conservative cutoffs that preserve recall."
+### What I think should happen
 
-### The sign conflict
+First, decide which mistake we care about. Predicting too early loses recall, which is the thing we measure.
+Predicting too late costs time, which we care less about. Then name the arguments after what they penalise,
+use the same convention everywhere, and check the true recall at the predicted cutoff on the test set against
+`tau`. The model output file already reports that number, so the check is cheap.
 
-The "3:1" label means different things in different places:
-
-| Location | Call | Heavier penalty, per the code |
-|---|---|---|
-| `om_models.py:1072` (DirectXGB weights) | `under_cost=3` | under-prediction |
-| `om_models.py:1445`, `1697` (GP grid search) | `over_cost=3, under_cost=1` | over-prediction |
-| `last_tp_division_prediction_second.py:918-919` | `TARGET_OVER=1`, `TARGET_UNDER=3` | under-prediction |
-
-The DirectXGB weight formula is copied into the last-TP script, and its comment there says "fight
-overestimation" while the constants weight underestimation 3:1. The two comments disagree with each other.
-
-The GP grid search is the one that matters for the claim in its docstring. If too-late cutoffs cost 3x, the
-optimiser prefers lower predicted fractions, meaning earlier cutoffs. Earlier cutoffs keep less recall. So
-the docstring's "preserve recall" does not follow from the code as written. That is my reading, and I have
-not run an experiment to confirm it.
-
-### What to check before trusting the cutoff
-
-1. Decide which error you want to penalise. Under-prediction loses recall; over-prediction costs time.
-2. Make the three locations use the same convention and name the argument after what it penalises
-   (`under_cost` and `over_cost` are not enough on their own).
-3. Compare the true recall at the predicted cutoff on the test set against the target `tau`. The model
-   output file (`om_models.py:1711-1723`) already reports this.
-
-The decision rule itself is covered in [the stop-splitting post]({% post_url 2026-09-28-deciding-when-to-stop-splitting-a-tree %}).
-The recall metric that the cutoff is trained against is in
+The stopping rule for each split is in [the stop-splitting post]({% post_url 2026-09-28-deciding-when-to-stop-splitting-a-tree %}),
+and the recall metric that these cutoffs are trained against is in
 [the recall metric post]({% post_url 2026-09-07-why-your-classifier-beats-your-recall-metric %}).

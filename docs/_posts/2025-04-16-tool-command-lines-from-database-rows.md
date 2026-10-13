@@ -5,38 +5,37 @@ date: 2025-04-16 15:48:13 +0000
 categories: python django configuration
 ---
 
-Every tool in INSaFLU has a long list of options: thresholds, primers, databases, and modes. Those options can
-be changed by a user in the web interface, per project and per sample. So the command line cannot be a
-hard-coded string. Instead, each option is a row in the database, and the command line is built from the rows
-at run time. This post covers how that works, using the code in `settings/default_parameters.py`.
+Every tool in INSaFLU has a long list of options: thresholds, primers, databases, modes. Users can change them in the
+web interface, per project and per sample. That means the command line cannot be a hard-coded string, because the
+options differ from run to run. For a while I was not sure how to handle that cleanly. What we ended up with is that
+every option is a row in the database, and the command line is assembled from those rows at run time. This post
+explains how that works, using `settings/default_parameters.py`.
 
-### Rows, not strings
+### An option is a row
 
-Each option is a `Parameter` row with a name, a value, a separator, and a scope (software, project, sample).
-The default builders create the rows. Here is one, the Snippy minimum coverage option:
+Each option is a `Parameter` object with a name, a value, a separator, and a scope: the software, the project, or the
+sample. The default builders create the rows. Here is one, the minimum coverage for Snippy:
 
 ```python
 parameter = Parameter()
 parameter.name = DefaultParameters.SNIPPY_COVERAGE_NAME        # "--mincov"
 parameter.parameter = "10"
 parameter.type_data = Parameter.PARAMETER_int
-parameter.software = software
 parameter.union_char = " "
-parameter.can_change = True
 parameter.range_min = "4"
 parameter.range_max = "100"
 ```
 
-The name is the flag. The value is what follows it. `union_char` is the separator, which is a space here.
+The name is the flag, and the value is what follows it. The separator is a space here. The range fields are what the
+web form uses to validate input, so the same row drives the form, the command and the tests.
 
 ### Fetching the rows
 
-`get_parameters` filters the rows by software, project, sample, dataset, and pipeline step. Then
-`get_parameters_parsed` passes them to `parse_parameters`:
+When a tool is about to run, the code asks for its parameters for this software, project and sample. The lookup
+filters the rows, and then hands them to the parser:
 
 ```python
-def get_parameters_parsed(self, software_name, user, type_of_use, project, project_sample,
-                          sample, ...):
+def get_parameters_parsed(self, software_name, user, type_of_use, project, project_sample, sample, ...):
     parameters = self.get_parameters(software_name, user, type_of_use, project,
                                      project_sample, sample, ...)
     if parameters is None:
@@ -46,8 +45,8 @@ def get_parameters_parsed(self, software_name, user, type_of_use, project, proje
 
 ### Turning rows into text
 
-`parse_parameters` (`default_parameters.py:753-870`) first groups rows by name, keeping the order in which
-each name first appears. A name can have several values, each with its own separator:
+The parser groups rows by name, keeping the order in which each name first appears. A name can carry several values,
+each with its own separator, so the grouping is needed:
 
 ```python
 if parameter.name in dict_out:
@@ -58,33 +57,24 @@ else:
     dict_out[parameter.name] = [[parameter.union_char], [parameter.parameter]]
 ```
 
-Then it writes the name, and each value with its separator. Rows whose value equals `not_set_value` are skipped.
-Names wrapped in `[...]` are not written as flags, only their values. That is how a row can carry a value
-without a flag name.
-
-Some tools have special cases in the same function (Trimmomatic, DIAMOND, Snippy and Medaka primers, and
-`--db`). Those are hard-coded because their syntax does not fit the generic rule.
+It then writes the name followed by each value and its separator. Rows whose value equals the "not set" value are skipped.
+A name wrapped in square brackets is not written as a flag, only its values are. That is how a row can carry a value
+without a flag. Some tools need special cases in the same function, such as Trimmomatic, DIAMOND, the primer options and
+`--db`, because their syntax does not follow the general rule.
 
 ### Rows that are not flags
 
-Not every row becomes a flag. The clustering model choice is a radio-button row with its own name:
+Not every row becomes a command-line flag. The clustering model choice is a radio-button row with a name of its own,
+and the application reads it directly to decide how to traverse the tree. It never reaches a command line. So one table
+holds both kinds of setting, and the code has to know which is which. That is convenient, and it is also easy to get
+wrong: a row named with brackets and a row named without them look almost the same in the table.
 
-```python
-parameter.name = SoftwareNames.SOFTWARE_REMAP_PARAMS_clustering_model_type
-parameter.type_data = Parameter.PARAMETER_radio_button
-```
+### What I would change
 
-Application code reads it directly (`televir_parameters.py:255-278`) and never emits it to a command line.
-So one table holds both flags and application settings, and the code has to know which is which.
+Changing an option is now a database update, with no code change and no redeploy, and I think that part works well.
+The implicit rules about flags versus values should be written down in one place. The separator is also set separately
+by each default builder, so the same option can end up with different separators depending on who created it. A single
+table of separators per option type would make that consistent.
 
-### What works and what I would change
-
-- Changing an option is a database update. No code change and no redeploy.
-- The same rows drive the web form, the command, and the tests.
-- The rule that picks flags versus values is implicit. A row named `[--x]` is different from a row named
-  `--x`, and that difference is only visible in the parser.
-- `union_char` is set by each default builder, so the value for a given option can differ between builders.
-  A single table of separators per option type would make that consistent.
-
-For how these commands are then executed and checked, see
+The way these commands are run and checked afterwards is in
 [the wrapper post]({% post_url 2022-08-16-one-wrapper-for-every-bioinformatics-tool %}).

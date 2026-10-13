@@ -5,46 +5,26 @@ date: 2026-01-05 17:32:33 +0000
 categories: docker slurm devops
 ---
 
-INSaFLU's development environment runs a real SLURM scheduler, not a fake queue. The database, controller,
-compute nodes, and web app are separate containers started by one Compose file. This post describes the
-layout, how a job gets from the web app to a compute node, and the problems I found while reading it.
+For development, INSaFLU runs a real SLURM scheduler, not a fake queue. I wanted that because the job logic is only
+useful if it runs against the same scheduler we use on the cluster. The database, the controller, two compute nodes and
+the web app are separate containers, started by one Compose file. This post describes how it fits together, how a job
+gets from the web app to a compute node, and the problems I found while reading the configuration.
 
-One caveat on scope: this describes the `ubuntu-slurm` branch at commit `3bfd5eb0`. Some fixes exist on another
-branch and are not in this one. I note where that matters.
+One caveat: this describes the `ubuntu-slurm` branch at commit `3bfd5eb0`. Some fixes exist on another branch and are not
+in this one, and I say where that matters.
 
-### The services
+### The containers
 
-| Service | Role | Hostname |
-|---|---|---|
-| `mysql` | MariaDB 12.3.2, SLURM accounting database | `mysql` |
-| `slurmdbd` | SLURM accounting daemon | `slurmdbd` |
-| `slurmctld` | SLURM controller | `slurmctld` |
-| `c1`, `c2` | Compute nodes (`slurmd`) | `c1`, `c2` |
-| `insaflu-ubuntu` | Django web app, and the job submitter | `insaflu` |
+There are five services that make up the cluster. MariaDB holds SLURM's accounting data. `slurmdbd` is the accounting
+daemon that talks to it. `slurmctld` is the controller, and `c1` and `c2` are compute nodes. The web app is the fifth
+container, and it is also where jobs are submitted from. Each container finds the others by its service name on a private
+network, and the compute nodes also join the web app's network, because they mount the same data volumes.
 
-Each container finds the others by its service name on a private bridge network. The compute nodes also join
-the web app's network, because they mount the same data volumes.
+Startup order is enforced with health checks rather than sleeps. The accounting daemon waits for the database to be
+healthy, and the controller waits for the accounting daemon. Each entrypoint also waits for the upstream port to open
+before it starts its own daemon, since "container started" does not mean "service listening".
 
-### Dependencies
-
-Startup order is enforced with health checks, not sleeps:
-
-```yaml
-slurmdbd:
-  depends_on:
-    mysql:
-      condition: service_healthy
-slurmctld:
-  depends_on:
-    slurmdbd:
-      condition: service_healthy
-```
-
-The chain is `mysql`, then `slurmdbd`, then `slurmctld`, then `c1` and `c2`, then the web app. Each entrypoint
-also waits on the upstream TCP port before starting its daemon, which covers the gap between "container
-started" and "service listening".
-
-### The cluster config
+### The cluster configuration
 
 The partition and node sizes are in `slurm.conf`:
 
@@ -56,17 +36,15 @@ NodeName=c[1-2] CPUs=8 RealMemory=8192 State=UNKNOWN
 PartitionName=normal Default=yes Nodes=c[1-2] Priority=50 Shared=NO MaxTime=5-00:00:00 State=UP
 ```
 
-Two 8-CPU, 8 GB nodes in one default partition. Authentication is munge, and accounting goes through
-`slurmdbd` into MariaDB.
+That is two nodes with eight CPUs and 8 GB each, in one default partition. Authentication uses munge, and accounting
+goes through `slurmdbd` into MariaDB. SLURM itself is compiled from source at a pinned tag, in a two-stage Dockerfile. The
+first stage builds it, and the result becomes a base image. The compute node and web app images are built on top of that
+base, so the client and server programs come from the same build.
 
-The build compiles SLURM from source at a pinned tag (`SLURM_TAG=slurm-25.05`). The two-stage Dockerfile
-produces a `slurm-runtime` image, and the node and web images are built on top of it, so the client and server
-binaries come from one build.
+### How a job gets to a node
 
-### How a job runs
-
-The web app submits work with `sbatch` from a shared `/data` volume. Status is read with `sinfo`, `squeue`,
-and `scontrol`. A typical startup job looks like this:
+The web app submits work with `sbatch`, from a directory on a volume that the controller and both compute nodes also
+mount. The job scripts carry their options as `#SBATCH` lines, like this startup job:
 
 ```bash
 #SBATCH --export=ALL
@@ -75,37 +53,38 @@ and `scontrol`. A typical startup job looks like this:
 #SBATCH --output=/data/tmp/%x_%j.out
 ```
 
-Jobs live on the `slurm_jobdir` volume, which the controller and both nodes mount. The compute nodes read the
-conda environments from a shared `/software` volume, so they do not install software themselves.
+Status comes from `sinfo`, `squeue` and `scontrol`, which the cluster status script calls from inside the web container.
+The compute nodes read conda environments from a shared software volume, so they do not install anything themselves.
 
-### UIDs and permissions
+### Users and permissions
 
-Shared volumes only work if the same user IDs exist in every container. The Dockerfile pins them: `slurm` is
-UID 990, `munge` is UID 102, and the app user `flu_user` is UID 1000, all in the `slurm` group. Each entrypoint
-then `chown`s its shared directories. That is the part most likely to break when someone changes a base image.
+Shared volumes only work if the same user IDs exist in every container. The Dockerfile pins them: `slurm` is UID 990,
+`munge` is UID 102, and the application user is UID 1000, all in the `slurm` group. Each entrypoint then changes ownership
+of the shared directories. I think that is the part most likely to break, because nothing checks it. If someone changes a
+base image and the IDs move, the failure shows up as permission errors far away from the cause.
 
-### Problems I found
+### What I found
 
-1. **Three copies of the SLURM config.** The web app, the controller, and the nodes each have their own
-   `configs/slurm` directory, and they already differ. The node copy of `cgroup.conf` adds a plugin the other
-   copies do not have.
-2. **A syntax error stopped the compute nodes.** The node entrypoint has a stray quote after its first `exec`.
-   On the fix branch, that is listed as the reason `c1` and `c2` never started.
-3. **Shared munge socket.** The nodes and the web app mount the controller's `/run/munge` and do not run their
-   own `munged`. The fix branch notes that restarting `slurmctld` broke authentication for the whole cluster.
-4. **Secrets in git.** The munge key is committed (128 bytes in each component), and the SLURM accounting
-   password is `password` in `slurmdbd.conf`. Both are fine for a local dev cluster, and neither should be used
-   anywhere else.
-5. **Stale scripts.** `stop.sh` names a fixed list of containers and misses `officer`, `mlflow`, and `ml_app`.
-   `up.sh` prints instructions for scaling scripts that no longer exist.
-6. **Naming carry-over.** The app still uses `RUN_SGE` and `SGE_ROOT`, while the scheduler is SLURM. The
-   migration from SGE is the same story as [the hash-dependency post]({% post_url 2025-07-31-the-hash-dependency-that-broke-our-slurm-jobs %}).
+The three services each have their own copy of the SLURM configuration, and the copies have already drifted. The compute
+node's `cgroup.conf` adds a plugin the others do not have. Keeping three copies in sync by hand is how that happens.
+
+The compute node entrypoint has a stray quote after its first `exec`. On the fix branch that is listed as the reason the
+nodes never started, which is a good example of how much a single character can matter in a shell script.
+
+The nodes and the web app mount the controller's munge socket instead of running their own daemon. That means restarting
+the controller can break authentication for the whole cluster. The fix branch splits this up, and I agree with the change.
+
+There are two secrets in the repository. The munge key is committed in each component, and the accounting password is the
+word `password` in the daemon configuration. That is fine for a local development cluster, and it should not be used
+anywhere else. It is still worth saying out loud, because it is easy to copy a dev setup into something real.
+
+Some scripts are stale. The stop script names a fixed list of containers and misses three of the newer ones. The start script
+prints instructions for scaling scripts that were deleted. And the app still uses SGE names for its settings, even though the
+scheduler is SLURM. That is the same migration story as [the hash-dependency post]({% post_url 2025-07-31-the-hash-dependency-that-broke-our-slurm-jobs %}).
 
 ### What I would change
 
-Keep one SLURM config directory, mounted everywhere. Run one `munged` per container, or document the shared
-socket as a hard dependency on the controller. Move the accounting password into an environment secret. Remove
-the stale scripts and the SGE names once nothing reads them.
-
-Compose is a good place to test scheduler behaviour, since it is cheap to tear down and rebuild. The cost is
-that the config drifts silently when three copies exist, and that drift is the main thing to fix here.
+Keep one SLURM configuration directory and mount it everywhere. Give each container its own munge daemon, or document the shared
+socket as a hard dependency on the controller. Move the accounting password into an environment secret. Remove the stale scripts
+and the SGE names once nothing reads them. Compose is a good place to test scheduler behaviour, because it is cheap to tear down
+and rebuild. The thing to fix first is the drift between the three copies of the configuration.

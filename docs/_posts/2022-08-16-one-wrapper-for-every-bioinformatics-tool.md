@@ -5,12 +5,15 @@ date: 2022-08-16 08:42:47 +0100
 categories: python subprocess bioinformatics
 ---
 
-INSaFLU calls dozens of command-line tools: aligners, classifiers, assemblers, and format converters. The
-simplest way to run them is `subprocess` everywhere. Instead, the project has one class, `RunCMD`, that every
-pipeline step uses. It builds the command, runs it through a shell, writes a per-task log, and decides
-whether the run failed. This post explains what it does and, more importantly, what it does not check.
+INSaFLU calls dozens of command-line tools: aligners, classifiers, assemblers, format converters. The obvious way to
+run them from Python is `subprocess` everywhere, and that is roughly what we started with. Instead, the project has
+one class, `RunCMD`, that every pipeline step uses. I want to explain what it does well, and also the places where
+it quietly does less than it appears to.
 
-### Construction
+### Setting up a runner
+
+Each `RunCMD` knows the directory its tools live in, and it has its own log file, named after the prefix and the
+task:
 
 ```python
 class RunCMD:
@@ -19,41 +22,32 @@ class RunCMD:
             if bin[-1] != "/":
                 bin += "/"
         self.bin = bin
-        self.task = task
-        self.prefix = prefix
         self.logger = logging.getLogger(f"{prefix}_{task}")
-        self.logger.setLevel(logging.ERROR)
-        for handler in self.logger.handlers[:]:
-            self.logger.removeHandler(handler)
+        ...
         self.logger.addHandler(
             logging.FileHandler(os.path.join(logdir, f"{prefix}_{task}.log"))
         )
 ```
 
-Each `RunCMD` has a binary directory, and every command is that directory plus the tool name. Each one has its
-own log file, named by prefix and task. A call site looks like this:
+A call site looks like this, and the classification step alone calls `run` around forty times:
 
 ```python
 self.cmd = RunCMD(bin, logdir=log_dir, prefix=prefix, task="classification")
 self.cmd.run(cmd)
 ```
 
-`classification_class.py` alone calls `run` about 40 times.
+Having one object per step means every tool's output lands in a predictable place, which is most of the value when
+something goes wrong at three in the morning.
 
-### Execution
+### Running a command
 
-Running a command goes through `system_deploy`:
+Under the hood, `run` joins the command with the binary directory and calls `Popen` with `shell=True`, then reads
+stdout and stderr. Both are written to the log. The shell is convenient for pipes and redirects, but it means file
+names with spaces need care, and we have had to fix quoting more than once.
 
-```python
-process = subprocess.Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
-out, err = process.communicate()
-```
+### The failure check
 
-The command is a string run with `shell=True`. Stdout and stderr are captured and written to the log.
-
-### How a failure is detected
-
-The only failure check is a substring match on stderr:
+This is where I need to be honest. The only thing that marks a run as failed is a string in stderr:
 
 ```python
 def flag_error(self, subprocess_errorlog, cmd: str = ""):
@@ -62,33 +56,27 @@ def flag_error(self, subprocess_errorlog, cmd: str = ""):
         if "[error]" in subprocess_errorlog.lower():
             return True
     return False
-
-def dispose_output_carefully(self, cmd, out, err, exec_time):
-    if self.flag_error(err, cmd):
-        self.logger.error(f"errror in command: {self.bin}{cmd}")
-        raise Exception(err.decode("utf-8"))
-    self.output_disposal(cmd, err, out, exec_time, self.bin)
 ```
 
-**The exit code is never read.** `system_deploy` does not check `returncode`. A tool that exits non-zero
-without printing `[error]` looks like a success. A tool that prints `[error]` on a successful run causes a
-failure.
+If a tool prints `[error]`, we raise. If a tool exits with a non-zero status and prints nothing that matches, we do
+not raise. The exit code is never read. I went through the code twice to make sure I was not missing it, and it is
+not there. Some tools do print `[error]` on success, which causes false failures, and others fail silently. The
+wrapper cannot tell the difference, because it is not looking at the one thing that tells it.
 
-### The script runners swallow errors
+### The script runners
 
-`run_script` and `run_bash_script` write a temporary bash script, run it in the background, and wait for a
-flag file. Their error state is a string (the log text, or `"Timeout"`). Then `flag_error` calls `.decode()`
-on a string, which raises, and that exception is caught and returns `False`. So a timed-out script is logged
-and never raised. A caller cannot tell that it failed.
+There is a second group of methods that run a command as a temporary bash script, wait for a flag file, and time
+out after a limit. These are worse. Their error state is a string, either the log text or the word "Timeout". When
+the failure check runs on that string, it tries to decode it, which fails, and the exception is caught and the check
+returns false. So a timed-out script gets logged and then forgotten. The caller carries on as if it worked.
 
 ### What I would change
 
-1. Check `returncode` in `system_deploy`, and raise on non-zero, in addition to the `[error]` string.
-2. Make the script runners raise on timeout and on non-zero exit, not log.
-3. Stop building commands as one shell string. A list with `shell=False` avoids quoting bugs for file names
-   with spaces.
-4. Keep the log writing, since the per-task log files are useful in practice.
+Read the exit code in the single-command path and raise on anything non-zero, in addition to checking stderr. Make
+the script runners raise on timeout and on failure instead of logging. Pass the command as a list with `shell=False`
+where possible, which avoids most of the quoting problems. Keep the per-task log files, because they are the first
+thing I open when a run fails.
 
-The problem of a pipeline silently continuing after a bad step is the same one as in
-[the SLURM dependency post]({% post_url 2025-07-31-the-hash-dependency-that-broke-our-slurm-jobs %}): the
-job runs, nothing errors, and the output is wrong.
+The same problem shows up in the SLURM post, [the hash-dependency one]({% post_url 2025-07-31-the-hash-dependency-that-broke-our-slurm-jobs %}).
+There too, the job ran, nothing reported an error, and the output was wrong. A wrapper that cannot see failure is the
+same bug in a different place.
