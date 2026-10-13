@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Rebuilding the Kraken2 tree from indentation"
-date: 2025-08-02 22:02:07 +0000
+date: 2026-06-30 12:26:29 +0100
 categories: python metagenomics parsing
 ---
 
